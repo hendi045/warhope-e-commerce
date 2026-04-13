@@ -4,11 +4,12 @@ import "./globals.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
+// Menggunakan Inter sesuai konsep PDF
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Boutique E-Commerce",
-  description: "Boutique Digital Flagship",
+  title: "Warhope | E-Commerce",
+  description: "Modern Casual Apparel & Streetwear",
 };
 
 export default function RootLayout({
@@ -17,14 +18,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // suppressHydrationWarning ditambahkan di sini
     <html lang="id" suppressHydrationWarning> 
       <body 
         suppressHydrationWarning 
-        className={`${inter.className} bg-[#f5f6f7] text-slate-900 selection:bg-blue-200`}
+        // Hapus bg-[#f5f6f7] hardcode di sini agar globals.css bisa bekerja
+        // Tambahkan antialiased agar font lebih tajam
+        className={`${inter.className} antialiased selection:bg-blue-600 selection:text-white`}
       >
         <Navbar /> 
-        {children}
+        
+        {/* Main wrapper agar konten tidak tertutup navbar (padding top 20 / 5rem) */}
+        <main className="pt-20 min-h-screen">
+          {children}
+        </main>
+
         <Footer />
       </body>
     </html>
