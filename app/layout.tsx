@@ -19,7 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" suppressHydrationWarning className="scroll-smooth"> 
+    // PERBAIKAN: Menambahkan data-scroll-behavior="smooth" untuk meredakan warning Next.js
+    <html lang="id" suppressHydrationWarning className="scroll-smooth" data-scroll-behavior="smooth"> 
       <body 
         suppressHydrationWarning 
         // Ditambahkan bg-background dan text-foreground agar tema (Light/Dark) dari globals.css merata ke seluruh aplikasi

@@ -3,9 +3,25 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
-import { Truck, ShoppingBag, ShieldCheck, ArrowRight, Package } from 'lucide-react';
+import { Truck, ShoppingBag, ShieldCheck, ArrowRight, MapPin } from 'lucide-react';
 import { useCartStore } from '../../../store/cartStore';
 import { useToastStore } from '../../../store/toastStore';
+
+// DATA MOCK PROVINSI & TARIF DASAR PENGIRIMAN
+const PROVINCES = [
+  { name: 'Pilih Provinsi...', cost: 0 },
+  { name: 'DKI Jakarta', cost: 10000 },
+  { name: 'Banten', cost: 12000 },
+  { name: 'Jawa Barat', cost: 15000 },
+  { name: 'Jawa Tengah', cost: 20000 },
+  { name: 'DI Yogyakarta', cost: 20000 },
+  { name: 'Jawa Timur', cost: 25000 },
+  { name: 'Bali', cost: 35000 },
+  { name: 'Sumatera', cost: 45000 },
+  { name: 'Kalimantan', cost: 55000 },
+  { name: 'Sulawesi', cost: 60000 },
+  { name: 'Papua & Maluku', cost: 80000 },
+];
 
 export default function CheckoutPage() {
   const { items, getTotalPrice } = useCartStore();
@@ -17,7 +33,14 @@ export default function CheckoutPage() {
     firstName: '', lastName: '', email: '', phone: '', address: '', city: '', state: '', zip: ''
   });
 
-  const [shippingCost, setShippingCost] = useState(15000); 
+  // STATE UNTUK ONGKIR DINAMIS
+  const [baseShipping, setBaseShipping] = useState(0);
+  const [shippingType, setShippingType] = useState('reguler'); // 'reguler' atau 'ekspres'
+
+  // LOGIKA PENGHITUNGAN ONGKIR
+  // Jika provinsi belum dipilih (0), ongkir tetap 0.
+  // Jika Ekspres, tambah biaya ekstra Rp 20.000 dari tarif dasar provinsi.
+  const shippingCost = baseShipping === 0 ? 0 : (shippingType === 'reguler' ? baseShipping : baseShipping + 20000);
 
   const subtotal = getTotalPrice();
   const adminFee = 1000; 
@@ -32,8 +55,13 @@ export default function CheckoutPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleShippingChange = (e) => {
-    setShippingCost(Number(e.target.value));
+  // HANDLER KETIKA PROVINSI BERUBAH
+  const handleProvinceChange = (e) => {
+    const provName = e.target.value;
+    const selectedProv = PROVINCES.find(p => p.name === provName);
+    
+    setFormData(prev => ({ ...prev, state: provName }));
+    setBaseShipping(selectedProv ? selectedProv.cost : 0);
   };
 
   const handlePayment = async (e) => {
@@ -41,6 +69,11 @@ export default function CheckoutPage() {
     
     if (!formData.firstName || !formData.email || !formData.address) {
       addToast('Mohon lengkapi data diri dan alamat email Anda.', 'error');
+      return;
+    }
+
+    if (baseShipping === 0) {
+      addToast('Mohon pilih Provinsi pengiriman terlebih dahulu.', 'error');
       return;
     }
 
@@ -60,7 +93,6 @@ export default function CheckoutPage() {
         
         if (typeof window !== 'undefined' && window.loadJokulCheckout) {
           window.loadJokulCheckout(data.payment_url);
-          // Pengosongan keranjang (clearCart) dipindahkan ke halaman /success
         } else {
           window.location.href = data.payment_url;
         }
@@ -89,8 +121,6 @@ export default function CheckoutPage() {
     );
   }
 
-  // --- LOGIKA CERDAS: DETEKSI URL SCRIPT DOKU ---
-  // Jika URL API di environment adalah sandbox, muat JS Sandbox. Jika tidak, muat JS Production.
   const isSandbox = process.env.NEXT_PUBLIC_DOKU_IS_PRODUCTION !== "true";
   const dokuScriptUrl = isSandbox 
     ? "https://sandbox.doku.com/jokul-checkout-js/v1/jokul-checkout-1.0.0.js"
@@ -99,11 +129,7 @@ export default function CheckoutPage() {
   return (
     <main className="pt-32 pb-20 px-4 md:px-8 max-w-7xl mx-auto min-h-screen bg-background">
       
-      {/* SCRIPT DOKU CERDAS */}
-      <Script 
-        src={dokuScriptUrl} 
-        strategy="lazyOnload" 
-      />
+      <Script src={dokuScriptUrl} strategy="lazyOnload" />
 
       <header className="mb-12 text-center">
         <h1 className="text-4xl font-extrabold tracking-tight text-foreground mb-4">Selesaikan Pesanan</h1>
@@ -132,65 +158,95 @@ export default function CheckoutPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Nama Depan *</label>
-                <input name="firstName" value={formData.firstName} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none" placeholder="Budi" />
+                <input name="firstName" value={formData.firstName} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="Budi" />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Nama Belakang</label>
-                <input name="lastName" value={formData.lastName} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none" placeholder="Santoso" />
+                <input name="lastName" value={formData.lastName} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="Santoso" />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Alamat Email *</label>
-                <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none" placeholder="budi@email.com" />
+                <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="budi@email.com" />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Nomor HP / WhatsApp</label>
-                <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none" placeholder="08123456789" />
+                <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="08123456789" />
               </div>
               <div className="col-span-1 md:col-span-2">
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Alamat Lengkap *</label>
-                <input name="address" value={formData.address} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none" placeholder="Nama jalan, gedung, no rumah" />
+                <input name="address" value={formData.address} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="Nama jalan, gedung, no rumah" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Kota/Kabupaten</label>
-                <input name="city" value={formData.city} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none" placeholder="Jakarta Selatan" />
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Kota/Kabupaten *</label>
+                <input name="city" value={formData.city} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="Jakarta Selatan" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Provinsi</label>
-                  <input name="state" value={formData.state} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none" placeholder="DKI Jakarta" />
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Provinsi *</label>
+                  <select 
+                    name="state" 
+                    value={formData.state} 
+                    onChange={handleProvinceChange} 
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all appearance-none cursor-pointer"
+                  >
+                    {PROVINCES.map((prov) => (
+                      <option key={prov.name} value={prov.name}>{prov.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Kode Pos</label>
-                  <input name="zip" value={formData.zip} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none" placeholder="12345" />
+                  <input name="zip" value={formData.zip} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="12345" />
                 </div>
               </div>
             </div>
             
-            <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-700">
+            <div className={`mt-8 pt-8 border-t border-slate-200 dark:border-slate-700 transition-opacity duration-300 ${baseShipping === 0 ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
               <div className="flex items-center gap-3 mb-4">
-                <Package className="text-blue-600 dark:text-blue-500 w-5 h-5" />
+                <MapPin className="text-blue-600 dark:text-blue-500 w-5 h-5" />
                 <h3 className="text-sm font-bold tracking-tight text-foreground uppercase">Metode Pengiriman</h3>
               </div>
+              
+              {baseShipping === 0 && (
+                <p className="text-xs text-amber-600 mb-4">Silakan pilih provinsi terlebih dahulu untuk melihat tarif pengiriman.</p>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <label className={`border rounded-xl p-4 cursor-pointer transition-all flex justify-between items-center ${shippingCost === 15000 ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                <label className={`border rounded-xl p-4 cursor-pointer transition-all flex justify-between items-center ${shippingType === 'reguler' && baseShipping > 0 ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
                   <div>
                     <p className="font-bold text-sm text-foreground">Reguler</p>
-                    <p className="text-xs text-foreground/60 mt-1">Estimasi 2-4 hari kerja</p>
+                    <p className="text-xs text-foreground/60 mt-1">Estimasi 3-5 hari kerja</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-sm">{formatRupiah(15000)}</span>
-                    <input type="radio" name="shipping" value={15000} checked={shippingCost === 15000} onChange={handleShippingChange} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                    <span className="font-bold text-sm">{baseShipping > 0 ? formatRupiah(baseShipping) : '-'}</span>
+                    <input 
+                      type="radio" 
+                      name="shipping" 
+                      value="reguler" 
+                      checked={shippingType === 'reguler'} 
+                      onChange={() => setShippingType('reguler')} 
+                      disabled={baseShipping === 0}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500" 
+                    />
                   </div>
                 </label>
                 
-                <label className={`border rounded-xl p-4 cursor-pointer transition-all flex justify-between items-center ${shippingCost === 25000 ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                <label className={`border rounded-xl p-4 cursor-pointer transition-all flex justify-between items-center ${shippingType === 'ekspres' && baseShipping > 0 ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
                   <div>
-                    <p className="font-bold text-sm text-foreground">Ekspres (Cepat)</p>
+                    <p className="font-bold text-sm text-foreground">Ekspres (Kilat)</p>
                     <p className="text-xs text-foreground/60 mt-1">Estimasi 1-2 hari kerja</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-sm">{formatRupiah(25000)}</span>
-                    <input type="radio" name="shipping" value={25000} checked={shippingCost === 25000} onChange={handleShippingChange} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                    <span className="font-bold text-sm">{baseShipping > 0 ? formatRupiah(baseShipping + 20000) : '-'}</span>
+                    <input 
+                      type="radio" 
+                      name="shipping" 
+                      value="ekspres" 
+                      checked={shippingType === 'ekspres'} 
+                      onChange={() => setShippingType('ekspres')} 
+                      disabled={baseShipping === 0}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500" 
+                    />
                   </div>
                 </label>
               </div>
@@ -209,7 +265,7 @@ export default function CheckoutPage() {
             
             <div className="space-y-6">
               {items.map((item) => {
-                const uniqueKey = `${item.id}-${item.selectedSize}`;
+                const uniqueKey = `${item.id}-${item.selectedColor}-${item.selectedSize}`;
                 return (
                   <div key={uniqueKey} className="flex items-center gap-6 group">
                     <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900 shrink-0 border border-slate-100 dark:border-slate-700">
@@ -221,7 +277,7 @@ export default function CheckoutPage() {
                         <h3 className="font-bold text-foreground text-sm">{item.name}</h3>
                         <span className="font-bold text-foreground text-sm">{formatRupiah(item.price)}</span>
                       </div>
-                      <p className="text-xs text-foreground/60 mb-2">Size: {item.selectedSize}</p>
+                      <p className="text-xs text-foreground/60 mb-2">Size: {item.selectedSize} | Warna: {item.selectedColor}</p>
                       <span className="text-xs font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md text-foreground">Qty: {item.quantity}</span>
                     </div>
                   </div>
@@ -241,7 +297,7 @@ export default function CheckoutPage() {
               </div>
               
               <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Pengiriman</span>
+                <span className="text-slate-400">Pengiriman {baseShipping > 0 ? (shippingType === 'reguler' ? '(Reguler)' : '(Ekspres)') : ''}</span>
                 <span className="font-medium text-white">{formatRupiah(shippingCost)}</span>
               </div>
               
@@ -259,8 +315,8 @@ export default function CheckoutPage() {
             <div className="space-y-4">
               <button 
                 onClick={handlePayment} 
-                disabled={isProcessing}
-                className="w-full py-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-500 shadow-lg shadow-blue-900/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                disabled={isProcessing || baseShipping === 0}
+                className="w-full py-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-500 shadow-lg shadow-blue-900/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
               >
                 {isProcessing ? (
                   <>

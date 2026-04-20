@@ -2,27 +2,23 @@
 
 import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Search, Menu, User, LogOut } from 'lucide-react';
+import { ShoppingBag, Search, Menu, User } from 'lucide-react';
 import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
-import { useToastStore } from '../store/toastStore';
 
 export default function Navbar() {
   const items = useCartStore((state) => state.items);
-  const { user, checkAuth, logout } = useAuthStore();
-  const addToast = useToastStore((state) => state.addToast);
+  const { user, checkAuth } = useAuthStore();
 
   // Cek status login setiap Navbar dimuat
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  const handleLogout = () => {
-    logout();
-    addToast('Anda telah berhasil keluar.', 'info');
-  };
-
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
+
+  // Menentukan link tujuan saat profil diklik
+  const profileLink = user?.role === 'admin' ? '/admin' : '/profile';
 
   return (
     <nav className="fixed top-0 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-50 border-b border-slate-200 dark:border-slate-800 transition-colors">
@@ -35,13 +31,12 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Tengah: Logo (Diperbarui dengan Gambar) */}
+        {/* Tengah: Logo */}
         <Link href="/" className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src="/assets/warhope-clear.PNG" 
             alt="Warhope Logo" 
-            // Ukuran diubah di sini: h-8 untuk mobile, md:h-10 untuk desktop
             className="h-6 md:h-8 w-auto object-contain dark:invert transition-all hover:scale-105" 
           />
         </Link>
@@ -61,12 +56,20 @@ export default function Navbar() {
               <Search className="w-5 h-5" />
             </button>
             
-            {/* Tampilan Auth (Login / Logout) */}
+            {/* Tampilan Auth (Akun Saya / Login) */}
             {user ? (
-              <button onClick={handleLogout} className="hover:text-red-500 transition-colors flex items-center gap-2" title="Keluar">
-                <LogOut className="w-5 h-5" />
-                <span className="hidden md:block text-xs font-bold">{user.name}</span>
-              </button>
+              <Link 
+                href={profileLink} 
+                className="group flex items-center gap-2.5 hover:text-blue-600 transition-colors" 
+                title="Akun Saya"
+              >
+                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 group-hover:border-blue-600 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 transition-all">
+                  <User className="w-4 h-4" />
+                </div>
+                <span className="hidden md:block text-xs font-bold truncate max-w-30">
+                  {user.name}
+                </span>
+              </Link>
             ) : (
               <Link href="/auth/login" className="hover:text-blue-600 transition-colors" title="Masuk">
                 <User className="w-5 h-5" />

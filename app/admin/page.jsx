@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useToastStore } from '../../store/toastStore';
 import { getAllProducts, addProduct, updateProduct, deleteProduct } from '../../lib/api';
@@ -14,10 +14,6 @@ import {
   Trash2, X, Save, AlertTriangle, ArrowLeft, 
   MapPin, Phone, Mail, Truck
 } from 'lucide-react';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -121,12 +117,23 @@ export default function AdminDashboard() {
     e.preventDefault();
     setIsProcessing(true);
     try {
+      // FITUR BARU: AUTO-FORMAT GAMBAR UNSPLASH
+      let finalImageUrl = formData.image.trim();
+      
+      // Jika mendeteksi link Unsplash dan belum memiliki parameter '?'
+      if (finalImageUrl.includes('unsplash.com') && !finalImageUrl.includes('?')) {
+        // Kita tambahkan parameter kompresi agar gambar cepat dimuat dan tidak rusak
+        finalImageUrl += '?auto=format&fit=crop&q=80&w=800';
+      }
+
       const payload = {
         ...formData,
         price: parseInt(formData.price),
+        image: finalImageUrl, // Gunakan URL yang sudah diformat
         colors: formData.colors.split(',').map(c => c.trim()).filter(Boolean),
         sizes: formData.sizes.split(',').map(s => s.trim()).filter(Boolean),
       };
+
       if (modalMode === 'add') {
         await addProduct(payload);
         addToast(`Produk ditambahkan!`, 'success');
@@ -295,30 +302,34 @@ export default function AdminDashboard() {
           <table className="w-full text-left whitespace-nowrap">
             <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-sm"><tr><th className="px-6 py-4">Produk</th><th className="px-6 py-4">Kategori</th><th className="px-6 py-4">Harga</th><th className="px-6 py-4 text-right">Aksi</th></tr></thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-              {isLoadingProducts ? <tr><td colSpan="4" className="px-6 py-12 text-center text-slate-500">Memuat data produk...</td></tr> : filteredProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+              {isLoadingProducts ? <tr><td colSpan="4" className="px-6 py-12 text-center text-slate-500">Memuat data produk...</td></tr> : filteredProducts.length === 0 ? (
+                <tr><td colSpan="4" className="px-6 py-12 text-center text-slate-500">Tidak ada produk ditemukan.</td></tr>
+              ) : (
+                filteredProducts.map((product) => (
+                  <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-foreground">{product.name}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">ID: {product.id}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-foreground">{product.name}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">ID: {product.id}</p>
+                    </td>
+                    <td className="px-6 py-4"><span className="inline-flex px-3 py-1 bg-slate-100 dark:bg-slate-800 text-foreground/70 rounded-md text-xs font-bold">{product.category}</span></td>
+                    <td className="px-6 py-4 font-bold text-foreground">{formatRupiah(product.price)}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleOpenModal('edit', product)} className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"><Edit className="w-4 h-4" /></button>
+                        <button onClick={() => setDeleteModal({ isOpen: true, id: product.id, name: product.name })} className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4"><span className="inline-flex px-3 py-1 bg-slate-100 dark:bg-slate-800 text-foreground/70 rounded-md text-xs font-bold">{product.category}</span></td>
-                  <td className="px-6 py-4 font-bold text-foreground">{formatRupiah(product.price)}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleOpenModal('edit', product)} className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"><Edit className="w-4 h-4" /></button>
-                      <button onClick={() => setDeleteModal({ isOpen: true, id: product.id, name: product.name })} className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -420,7 +431,13 @@ export default function AdminDashboard() {
                   <div className="space-y-2"><label className="text-xs font-bold text-foreground/60 uppercase tracking-widest">Nama Produk</label><input required name="name" value={formData.name} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 outline-none text-foreground" placeholder="Nama barang" /></div>
                   <div className="space-y-2"><label className="text-xs font-bold text-foreground/60 uppercase tracking-widest">Kategori</label><select name="category" value={formData.category} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 outline-none text-foreground"><option value="T-Shirts">T-Shirts</option><option value="Hoodies">Hoodies</option><option value="Pants">Pants</option><option value="Accessories">Accessories</option></select></div>
                   <div className="space-y-2"><label className="text-xs font-bold text-foreground/60 uppercase tracking-widest">Harga (Rp)</label><input required type="number" name="price" value={formData.price} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 outline-none text-foreground" placeholder="249000" /></div>
-                  <div className="space-y-2 md:col-span-2"><label className="text-xs font-bold text-foreground/60 uppercase tracking-widest">URL Gambar (Unsplash CDN)</label><input required name="image" value={formData.image} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 outline-none text-foreground" placeholder="https://images.unsplash.com/..." /></div>
+                  
+                  {/* PENAMBAHAN INFO PADA PLACEHOLDER GAMBAR */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-bold text-foreground/60 uppercase tracking-widest">URL Gambar</label>
+                    <input required name="image" value={formData.image} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 outline-none text-foreground" placeholder="Contoh: https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&q=80" />
+                  </div>
+                  
                   <div className="space-y-2 md:col-span-2"><label className="text-xs font-bold text-foreground/60 uppercase tracking-widest">Deskripsi</label><textarea required name="description" rows={3} value={formData.description} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 outline-none text-foreground resize-none" placeholder="Penjelasan singkat produk..."></textarea></div>
                   <div className="space-y-2"><label className="text-xs font-bold text-foreground/60 uppercase tracking-widest">Warna (Pisahkan dg koma)</label><input required name="colors" value={formData.colors} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 outline-none text-foreground" placeholder="Hitam, Putih, Navy" /></div>
                   <div className="space-y-2"><label className="text-xs font-bold text-foreground/60 uppercase tracking-widest">Ukuran (Pisahkan dg koma)</label><input required name="sizes" value={formData.sizes} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 outline-none text-foreground" placeholder="S, M, L, XL" /></div>

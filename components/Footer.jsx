@@ -1,122 +1,94 @@
 import React from 'react';
 import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
+import { MapPin, Mail, Phone } from 'lucide-react'; // Ikon sosmed DIBUANG dari baris ini
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 transition-colors mt-20">
-      <div className="max-w-7xl mx-auto px-6 pt-16 pb-8">
+    <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 pt-16 pb-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
         
-        {/* Top Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8 mb-16">
-          
-          {/* Brand Info */}
-          <div className="md:col-span-2">
-            <Link href="/" className="flex items-center gap-3 mb-6">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src="/assets/warhope-clear.PNG" 
-                alt="Warhope Logo" 
-                className="h-8 w-auto object-contain dark:invert transition-all" // Tambahan invert untuk dark mode jika logo warna hitam
-              />
-            </Link>
-            <p className="text-foreground/60 max-w-sm mb-8 leading-relaxed">
-              Menggabungkan ketidaksempurnaan estetika Wabi-Sabi dengan gaya hidup streetwear urban modern. Esensi kasual untuk keseharian Anda.
-            </p>
-            <div className="flex items-center gap-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-foreground hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line>
-                </svg>
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-foreground hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                  <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
-                </svg>
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-foreground hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          {/* Nav Links - Shop */}
-          <div>
-            <h3 className="font-bold text-foreground mb-6 uppercase tracking-widest text-sm">Belanja</h3>
-            <ul className="space-y-4">
-              <li>
-                <Link href="#" className="text-foreground/60 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1 group">
-                  Semua Produk
-                  <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-foreground/60 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1 group">
-                  Koleksi T-Shirt
-                  <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-foreground/60 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1 group">
-                  Hoodies & Outer
-                  <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-foreground/60 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1 group">
-                  Aksesoris
-                  <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Nav Links - Support */}
-          <div>
-            <h3 className="font-bold text-foreground mb-6 uppercase tracking-widest text-sm">Bantuan</h3>
-            <ul className="space-y-4">
-              <li>
-                <Link href="#" className="text-foreground/60 hover:text-foreground transition-colors">
-                  Tentang Kami
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-foreground/60 hover:text-foreground transition-colors">
-                  Kebijakan Pengiriman
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-foreground/60 hover:text-foreground transition-colors">
-                  Pengembalian Barang
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-foreground/60 hover:text-foreground transition-colors">
-                  FAQ
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-        </div>
-
-        {/* Bottom Section */}
-        <div className="pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-foreground/50">
-            &copy; {currentYear} Warhope E-Commerce. Hak cipta dilindungi.
+        {/* Kolom 1: Brand Info */}
+        <div className="space-y-4 md:col-span-1">
+          <Link href="/" className="inline-block mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src="/assets/warhope-clear.PNG" 
+              alt="Warhope Logo" 
+              className="h-10 w-auto object-contain dark:invert" 
+            />
+          </Link>
+          <p className="text-sm text-foreground/60 leading-relaxed max-w-xs">
+            Mendefinisikan ulang gaya kasual dengan sentuhan modern. Warhope menghadirkan pakaian berkualitas tinggi untuk kenyamanan harian Anda.
           </p>
-          <div className="flex gap-6 text-sm text-foreground/50">
-            <Link href="#" className="hover:text-foreground transition-colors">Kebijakan Privasi</Link>
-            <Link href="#" className="hover:text-foreground transition-colors">Syarat & Ketentuan</Link>
+          <div className="flex items-center gap-4 pt-2">
+            {/* INSTAGRAM SVG */}
+            <a href="https://www.instagram.com/warhope1/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-foreground/60 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+            </a>
+            {/* TWITTER / X SVG */}
+            <a href="#" className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-foreground/60 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+            </a>
+            {/* FACEBOOK SVG */}
+            <a href="#" className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-foreground/60 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            </a>
           </div>
         </div>
 
+        {/* Kolom 2: Tautan Cepat */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-bold text-foreground uppercase tracking-widest">Tautan Cepat</h4>
+          <ul className="space-y-3">
+            <li><Link href="/" className="text-sm text-foreground/60 hover:text-blue-600 transition-colors">Beranda</Link></li>
+            <li><Link href="/#katalog" className="text-sm text-foreground/60 hover:text-blue-600 transition-colors">Katalog Produk</Link></li>
+            <li><Link href="/cart" className="text-sm text-foreground/60 hover:text-blue-600 transition-colors">Keranjang</Link></li>
+            <li><Link href="/profile" className="text-sm text-foreground/60 hover:text-blue-600 transition-colors">Lacak Pesanan</Link></li>
+          </ul>
+        </div>
+
+        {/* Kolom 3: Layanan Pelanggan */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-bold text-foreground uppercase tracking-widest">Bantuan</h4>
+          <ul className="space-y-3">
+            <li><Link href="#" className="text-sm text-foreground/60 hover:text-blue-600 transition-colors">FAQ</Link></li>
+            <li><Link href="#" className="text-sm text-foreground/60 hover:text-blue-600 transition-colors">Kebijakan Pengiriman</Link></li>
+            <li><Link href="#" className="text-sm text-foreground/60 hover:text-blue-600 transition-colors">Kebijakan Pengembalian</Link></li>
+            <li><Link href="#" className="text-sm text-foreground/60 hover:text-blue-600 transition-colors">Panduan Ukuran</Link></li>
+          </ul>
+        </div>
+
+        {/* Kolom 4: Kontak */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-bold text-foreground uppercase tracking-widest">Hubungi Kami</h4>
+          <ul className="space-y-4">
+            <li className="flex items-start gap-3">
+              <MapPin className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+              <span className="text-sm text-foreground/60 leading-relaxed">Jl. Raya Puspiptek, Kota Tangerang Selatan, Banten 15314</span>
+            </li>
+            <li className="flex items-center gap-3">
+              <Phone className="w-5 h-5 text-blue-600 shrink-0" />
+              <span className="text-sm text-foreground/60">+62 895-1635-3070</span>
+            </li>
+            <li className="flex items-center gap-3">
+              <Mail className="w-5 h-5 text-blue-600 shrink-0" />
+              <span className="text-sm text-foreground/60">hello@warhope.com</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div className="max-w-7xl mx-auto pt-8 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p className="text-xs text-foreground/50 font-medium">
+          &copy; {currentYear} Warhope Apparel. Hak Cipta Dilindungi.
+        </p>
+        <div className="flex items-center gap-4 text-xs text-foreground/50 font-medium">
+          <Link href="#" className="hover:text-foreground transition-colors">Privasi</Link>
+          <Link href="#" className="hover:text-foreground transition-colors">Syarat & Ketentuan</Link>
+        </div>
       </div>
     </footer>
   );
