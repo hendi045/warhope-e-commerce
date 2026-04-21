@@ -56,10 +56,12 @@ export default function Home() {
     : products.filter(p => p.category === activeCategory);
 
   return (
-    <main className="pt-8 pb-16 max-w-7xl mx-auto px-4 sm:px-6 min-h-screen bg-background">
+    // PERBAIKAN: Padding top dikurangi agar pas dengan layout
+    <main className="pt-4 md:pt-8 pb-16 max-w-7xl mx-auto px-4 sm:px-6 min-h-screen bg-background">
       
       {/* --- HERO SECTION (BENTO GRID STYLE) --- */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-16 pt-20">
+      {/* PERBAIKAN: pt-20 dihapus dari section ini agar tidak terjadi double-padding */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-16">
         <div className="md:col-span-2 relative bg-slate-200 dark:bg-slate-800 rounded-4xl overflow-hidden min-h-100 md:min-h-125 group">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
@@ -67,7 +69,7 @@ export default function Home() {
             alt="Fashion Lifestyle" 
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
           />
-          {/* 4. Perbaikan Tailwind linter: bg-linear-to-t */}
+          {/* Perbaikan Tailwind linter: bg-linear-to-t */}
           <div className="absolute inset-0 bg-linear-to-t from-slate-900/90 via-slate-900/20 to-transparent"></div>
           <div className="absolute bottom-0 left-0 p-8 md:p-12 text-white">
             <span className="inline-block bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-4 border border-white/20">

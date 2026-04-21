@@ -67,7 +67,7 @@ export default function WishlistPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background pt-32 pb-24 px-4 sm:px-6 max-w-7xl mx-auto">
+    <main className="min-h-screen bg-background pt-8 pb-24 px-4 sm:px-6 max-w-7xl mx-auto">
       
       {/* Tombol Kembali */}
       <Link href="/#katalog" className="inline-flex items-center gap-2 text-foreground/60 hover:text-foreground transition-colors font-medium mb-8 group">

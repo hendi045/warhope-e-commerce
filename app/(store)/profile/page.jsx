@@ -96,7 +96,13 @@ export default function ProfilePage() {
   const handleLogout = () => {
     const isConfirmed = window.confirm("Apakah Anda yakin ingin keluar?");
     if (isConfirmed) {
+      // 1. Proses Logout dari Supabase/AuthStore
       logout();
+      
+      // 2. KEAMANAN SESI: Kosongkan keranjang & wishlist lokal
+      useCartStore.getState().clearCart();
+      useWishlistStore.getState().clearWishlist();
+      
       addToast('Anda berhasil keluar.', 'info');
       router.push('/');
     }
@@ -157,7 +163,7 @@ export default function ProfilePage() {
   if (user.role === 'admin') { router.push('/admin'); return null; }
 
   return (
-    <main className="min-h-screen bg-background pt-32 pb-24 px-4 sm:px-6 max-w-7xl mx-auto">
+    <main className="min-h-screen bg-background pt-8 pb-24 px-4 sm:px-6 max-w-7xl mx-auto">
       <div className="flex items-center gap-3 mb-10">
         <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">Akun Saya</h1>
       </div>
