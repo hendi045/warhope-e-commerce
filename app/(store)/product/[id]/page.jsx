@@ -5,11 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Minus, Plus, ShoppingBag, ShieldCheck, Star, MessageSquare, Send } from 'lucide-react';
 
-// Import state management & API
+// Import state management & data
 import { useCartStore } from '../../../../store/cartStore';
 import { useAuthStore } from '../../../../store/authStore';
 import { useToastStore } from '../../../../store/toastStore';
-import { getProductById } from '../../../../lib/api'; // Menggunakan API Supabase asli
+import { products } from '../../../../lib/data';
 
 // Data Ulasan Dummy
 const initialReviews = [
@@ -40,32 +40,26 @@ export default function ProductDetail() {
   const addItem = useCartStore((state) => state.addItem);
 
   // --- EFEK MENCARI PRODUK ---
-  // PERBAIKAN LINTER: Menggunakan Async Function agar pembaruan state tidak memblokir render
   useEffect(() => {
-    const fetchProductData = async () => {
-      if (!id) return;
-
-      try {
-        const foundProduct = await getProductById(id);
-        if (foundProduct) {
+    if (id) {
+      const foundProduct = products.find((p) => p.id === id);
+      if (foundProduct) {
+        // Menggunakan setTimeout untuk menghindari pemanggilan setState sinkron dalam efek
+        const timer = setTimeout(() => {
           setProduct(foundProduct);
-          setSelectedColor(foundProduct.colors?.[0] || 'Default');
-          setSelectedSize(foundProduct.sizes?.[0] || 'All Size');
-        } else {
-          router.push('/');
-        }
-      } catch (error) {
-        console.error("Gagal mengambil data produk:", error);
+          setSelectedColor(foundProduct.colors[0]);
+          setSelectedSize(foundProduct.sizes[0]);
+        }, 0);
+        return () => clearTimeout(timer);
+      } else {
         router.push('/');
       }
-    };
-
-    fetchProductData();
-  }, [id, router]);
+    }
+  }, [id, router, setProduct, setSelectedColor, setSelectedSize]);
 
   if (!product) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center bg-background">
+      <div className="min-h-screen pt-8 flex items-center justify-center bg-background">
         <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
@@ -114,7 +108,7 @@ export default function ProductDetail() {
   const averageRating = (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1);
 
   return (
-    <main className="min-h-screen bg-background pt-32 pb-24">
+    <main className="min-h-screen bg-background pt-8 pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         
         {/* Tombol Kembali */}
@@ -257,7 +251,7 @@ export default function ProductDetail() {
                   <span className="text-xs font-bold text-foreground">{selectedColor}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {product.colors?.map((color) => (
+                  {product.colors.map((color) => (
                     <button
                       key={color}
                       onClick={() => setSelectedColor(color)}
@@ -276,7 +270,7 @@ export default function ProductDetail() {
                   <button className="text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:underline">Panduan Ukuran</button>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                  {product.sizes?.map((size) => (
+                  {product.sizes.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}

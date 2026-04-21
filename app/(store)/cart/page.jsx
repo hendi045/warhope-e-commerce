@@ -20,11 +20,9 @@ export default function CartPage() {
 
   // Mencegah Hydration Mismatch dari Zustand LocalStorage
   useEffect(() => {
-    // Menggunakan setTimeout untuk menjadikan state update asinkron 
-    // dan menghindari peringatan linter "cascading renders"
     const timer = setTimeout(() => {
       setIsClient(true);
-      checkAuth(); // Pastikan memeriksa sesi autentikasi saat komponen dimuat
+      checkAuth();
     }, 0);
 
     return () => clearTimeout(timer);
@@ -46,14 +44,15 @@ export default function CartPage() {
     addToast(`${item.name} dipindahkan ke Wishlist`, 'info');
   };
 
-  // Jangan render konten jika belum diinisialisasi atau user tidak ada (mencegah kedipan)
   if (!isClient || !isInitialized || !user) {
-    return <div className="min-h-screen bg-background pt-32 pb-24"></div>;
+    // PERBAIKAN: Mengurangi pt-32 menjadi pt-8
+    return <div className="min-h-screen bg-background pt-8 pb-24"></div>;
   }
 
   if (items.length === 0) {
     return (
-      <main className="min-h-screen bg-background pt-32 pb-24 px-4 sm:px-6 max-w-7xl mx-auto flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500">
+      // PERBAIKAN: Mengurangi pt-32 menjadi pt-8
+      <main className="min-h-screen bg-background pt-8 pb-24 px-4 sm:px-6 max-w-7xl mx-auto flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500">
         <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 shadow-inner">
           <ShoppingBag className="w-10 h-10 text-slate-300 dark:text-slate-600" />
         </div>
@@ -71,7 +70,8 @@ export default function CartPage() {
   const grandTotal = totalPrice + tax;
 
   return (
-    <main className="min-h-screen bg-background pt-32 pb-24 px-4 sm:px-6 max-w-7xl mx-auto">
+    // PERBAIKAN: Mengurangi pt-32 menjadi pt-8
+    <main className="min-h-screen bg-background pt-8 pb-24 px-4 sm:px-6 max-w-7xl mx-auto">
       <div className="flex items-center gap-3 mb-8 md:mb-12">
         <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">Keranjang Belanja</h1>
         <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-black text-sm px-3 py-1 rounded-full">
@@ -85,6 +85,26 @@ export default function CartPage() {
         <div className="lg:col-span-8 space-y-6">
           {items.map((item) => {
             const uniqueKey = `${item.id}-${item.selectedColor}-${item.selectedSize}`;
+            
+            // PERBAIKAN: Mengurai ukuran yang tersedia dari data produk untuk dropdown
+            let availableSizes = [];
+            if (item.sizes) {
+              if (Array.isArray(item.sizes)) {
+                availableSizes = item.sizes;
+              } else {
+                try {
+                  const parsedSizes = typeof item.sizes === 'string' ? JSON.parse(item.sizes) : item.sizes;
+                  availableSizes = Object.entries(parsedSizes)
+                    .filter(([, data]) => data.active)
+                    .map(([key]) => key);
+                } catch (e) {
+                  console.error("Gagal parsing ukuran keranjang:", e);
+                  availableSizes = [item.selectedSize]; 
+                }
+              }
+            } else {
+              availableSizes = [item.selectedSize];
+            }
             
             return (
               <div key={uniqueKey} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 md:p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -129,22 +149,17 @@ export default function CartPage() {
 
                   <div className="flex flex-wrap items-center justify-between gap-4 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                     
-                    {/* DROPDOWN EDIT VARIAN (WARNA & UKURAN) */}
-                    <div className="flex gap-2">
-                      <select 
-                        value={item.selectedColor}
-                        onChange={(e) => updateVariant(item.id, item.selectedColor, item.selectedSize, e.target.value, item.selectedSize)}
-                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-foreground py-2 px-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer appearance-none"
-                      >
-                        {item.colors?.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      
+                    {/* DROPDOWN EDIT VARIAN (HANYA UKURAN) */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/50">Size:</span>
                       <select 
                         value={item.selectedSize}
                         onChange={(e) => updateVariant(item.id, item.selectedColor, item.selectedSize, item.selectedColor, e.target.value)}
-                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-foreground py-2 px-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer appearance-none"
+                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-foreground py-2 px-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer appearance-none min-w-16 text-center"
                       >
-                        {item.sizes?.map(s => <option key={s} value={s}>{s}</option>)}
+                        {availableSizes.map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -173,7 +188,7 @@ export default function CartPage() {
           })}
         </div>
 
-        {/* KOLOM KANAN: Ringkasan Total (Sticky) */}
+        {/* KOLOM KANAN: Ringkasan Total */}
         <div className="lg:col-span-4">
           <div className="bg-slate-900 dark:bg-slate-800 border border-transparent dark:border-slate-700 text-white p-6 md:p-8 rounded-3xl shadow-xl sticky top-28 animate-in fade-in slide-in-from-right-8 duration-500">
             <h2 className="text-xl font-bold tracking-tight mb-8">Ringkasan Belanja</h2>

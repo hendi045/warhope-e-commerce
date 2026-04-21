@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
-import { Truck, ShoppingBag, ShieldCheck, ArrowRight, MapPin } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Truck, ShoppingBag, ShieldCheck, ArrowRight, MapPin, ReceiptText } from 'lucide-react';
 import { useCartStore } from '../../../store/cartStore';
 import { useToastStore } from '../../../store/toastStore';
+import { useAuthStore } from '../../../store/authStore';
 
-// DATA MOCK PROVINSI & TARIF DASAR PENGIRIMAN
 const PROVINCES = [
   { name: 'Pilih Provinsi...', cost: 0 },
   { name: 'DKI Jakarta', cost: 10000 },
@@ -24,42 +25,59 @@ const PROVINCES = [
 ];
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const { items, getTotalPrice } = useCartStore();
   const addToast = useToastStore((state) => state.addToast);
+  const { user, isInitialized, checkAuth } = useAuthStore();
   
+  const [isClient, setIsClient] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', phone: '', address: '', city: '', state: '', zip: ''
   });
 
-  // STATE UNTUK ONGKIR DINAMIS
   const [baseShipping, setBaseShipping] = useState(0);
-  const [shippingType, setShippingType] = useState('reguler'); // 'reguler' atau 'ekspres'
+  const [shippingType, setShippingType] = useState('reguler'); 
 
-  // LOGIKA PENGHITUNGAN ONGKIR
-  // Jika provinsi belum dipilih (0), ongkir tetap 0.
-  // Jika Ekspres, tambah biaya ekstra Rp 20.000 dari tarif dasar provinsi.
-  const shippingCost = baseShipping === 0 ? 0 : (shippingType === 'reguler' ? baseShipping : baseShipping + 20000);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsClient(true);
+      checkAuth();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [checkAuth]);
+
+  useEffect(() => {
+    if (isClient && isInitialized) {
+      if (!user) {
+        addToast('Anda harus masuk (login) untuk melanjutkan pembayaran.', 'error');
+        router.push('/auth/login');
+      } else {
+        const nameParts = user.name ? user.name.split(' ') : [];
+        setFormData(prev => ({
+          ...prev,
+          email: user.email || '',
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' ') || ''
+        }));
+      }
+    }
+  }, [isClient, isInitialized, user, router, addToast]);
 
   const subtotal = getTotalPrice();
-  const adminFee = 1000; 
-  const total = subtotal + shippingCost + adminFee;
+  const tax = subtotal * 0.1;
+  const shippingCost = baseShipping === 0 ? 0 : (shippingType === 'reguler' ? baseShipping : baseShipping + 20000);
+  const adminFee = 1500; 
+  const grandTotal = subtotal + tax + shippingCost + adminFee;
 
-  const formatRupiah = (number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
-  };
+  const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  const handleInputChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-  // HANDLER KETIKA PROVINSI BERUBAH
   const handleProvinceChange = (e) => {
     const provName = e.target.value;
     const selectedProv = PROVINCES.find(p => p.name === provName);
-    
     setFormData(prev => ({ ...prev, state: provName }));
     setBaseShipping(selectedProv ? selectedProv.cost : 0);
   };
@@ -67,8 +85,8 @@ export default function CheckoutPage() {
   const handlePayment = async (e) => {
     e.preventDefault();
     
-    if (!formData.firstName || !formData.email || !formData.address) {
-      addToast('Mohon lengkapi data diri dan alamat email Anda.', 'error');
+    if (!formData.firstName || !formData.email || !formData.address || !formData.phone) {
+      addToast('Mohon lengkapi semua data pengiriman dengan benar.', 'error');
       return;
     }
 
@@ -83,7 +101,14 @@ export default function CheckoutPage() {
       const response = await fetch('/api/doku', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ formData, items, shippingCost, adminFee }), 
+        body: JSON.stringify({ 
+          formData, 
+          items, 
+          shippingCost, 
+          tax,
+          adminFee,
+          totalAmount: grandTotal 
+        }), 
       });
 
       const data = await response.json();
@@ -96,25 +121,26 @@ export default function CheckoutPage() {
         } else {
           window.location.href = data.payment_url;
         }
-
       } else {
         throw new Error(data.error || "Gagal mendapatkan link pembayaran dari server.");
       }
     } catch (error) {
       console.error(error);
-      addToast('Terjadi kesalahan saat memuat sistem pembayaran. Cek log server.', 'error');
+      addToast('Terjadi kesalahan saat memuat sistem pembayaran. Hubungi CS Warhope.', 'error');
     } finally {
       setIsProcessing(false);
     }
   };
 
+  if (!isClient || !isInitialized || !user) return <div className="min-h-screen pt-32 pb-20 bg-background"></div>;
+
   if (items.length === 0) {
     return (
       <main className="pt-32 pb-20 px-4 md:px-8 max-w-7xl mx-auto min-h-screen flex flex-col items-center justify-center text-center">
         <ShoppingBag className="w-20 h-20 text-slate-200 dark:text-slate-800 mb-6" />
-        <h2 className="text-2xl font-bold text-foreground mb-2">Keranjang kosong</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Keranjang Anda kosong</h2>
         <p className="text-foreground/60 mb-8">Anda harus memilih produk sebelum melakukan checkout.</p>
-        <Link href="/" className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
+        <Link href="/" className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95">
           Kembali Berbelanja
         </Link>
       </main>
@@ -134,13 +160,13 @@ export default function CheckoutPage() {
       <header className="mb-12 text-center">
         <h1 className="text-4xl font-extrabold tracking-tight text-foreground mb-4">Selesaikan Pesanan</h1>
         <div className="flex justify-center items-center gap-4">
+          <Link href="/cart" className="flex items-center gap-2 group cursor-pointer">
+            <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 flex items-center justify-center text-sm font-bold shadow-sm transition-colors group-hover:bg-blue-200">1</span>
+            <span className="text-sm font-semibold text-foreground/70 group-hover:text-foreground">Keranjang</span>
+          </Link>
+          <div className="h-px w-8 bg-blue-600 dark:bg-blue-400"></div>
           <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">1</span>
-            <span className="text-sm font-semibold text-foreground">Keranjang</span>
-          </div>
-          <div className="h-px w-8 bg-slate-200 dark:bg-slate-700"></div>
-          <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 flex items-center justify-center text-sm font-bold shadow-sm">2</span>
+            <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">2</span>
             <span className="text-sm font-semibold text-foreground">Pengiriman & Bayar</span>
           </div>
         </div>
@@ -166,15 +192,15 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Alamat Email *</label>
-                <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="budi@email.com" />
+                <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground/50 rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="budi@email.com" readOnly />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Nomor HP / WhatsApp</label>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Nomor HP / WhatsApp *</label>
                 <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="08123456789" />
               </div>
               <div className="col-span-1 md:col-span-2">
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Alamat Lengkap *</label>
-                <input name="address" value={formData.address} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="Nama jalan, gedung, no rumah" />
+                <input name="address" value={formData.address} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-foreground rounded-xl p-4 text-sm focus:ring-2 focus:ring-blue-600 outline-none transition-all" placeholder="Nama jalan, gedung, RT/RW, no rumah" />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-foreground/50 mb-2 px-1">Kota/Kabupaten *</label>
@@ -212,41 +238,25 @@ export default function CheckoutPage() {
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <label className={`border rounded-xl p-4 cursor-pointer transition-all flex justify-between items-center ${shippingType === 'reguler' && baseShipping > 0 ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                <label className={`border rounded-xl p-4 cursor-pointer transition-all flex justify-between items-center ${shippingType === 'reguler' && baseShipping > 0 ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10 shadow-sm' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
                   <div>
                     <p className="font-bold text-sm text-foreground">Reguler</p>
                     <p className="text-xs text-foreground/60 mt-1">Estimasi 3-5 hari kerja</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-bold text-sm">{baseShipping > 0 ? formatRupiah(baseShipping) : '-'}</span>
-                    <input 
-                      type="radio" 
-                      name="shipping" 
-                      value="reguler" 
-                      checked={shippingType === 'reguler'} 
-                      onChange={() => setShippingType('reguler')} 
-                      disabled={baseShipping === 0}
-                      className="w-4 h-4 text-blue-600 focus:ring-blue-500" 
-                    />
+                    <input type="radio" name="shipping" value="reguler" checked={shippingType === 'reguler'} onChange={() => setShippingType('reguler')} disabled={baseShipping === 0} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
                   </div>
                 </label>
                 
-                <label className={`border rounded-xl p-4 cursor-pointer transition-all flex justify-between items-center ${shippingType === 'ekspres' && baseShipping > 0 ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                <label className={`border rounded-xl p-4 cursor-pointer transition-all flex justify-between items-center ${shippingType === 'ekspres' && baseShipping > 0 ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10 shadow-sm' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
                   <div>
                     <p className="font-bold text-sm text-foreground">Ekspres (Kilat)</p>
                     <p className="text-xs text-foreground/60 mt-1">Estimasi 1-2 hari kerja</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-bold text-sm">{baseShipping > 0 ? formatRupiah(baseShipping + 20000) : '-'}</span>
-                    <input 
-                      type="radio" 
-                      name="shipping" 
-                      value="ekspres" 
-                      checked={shippingType === 'ekspres'} 
-                      onChange={() => setShippingType('ekspres')} 
-                      disabled={baseShipping === 0}
-                      className="w-4 h-4 text-blue-600 focus:ring-blue-500" 
-                    />
+                    <input type="radio" name="shipping" value="ekspres" checked={shippingType === 'ekspres'} onChange={() => setShippingType('ekspres')} disabled={baseShipping === 0} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
                   </div>
                 </label>
               </div>
@@ -257,8 +267,8 @@ export default function CheckoutPage() {
           <section className="bg-white dark:bg-slate-800/50 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
             <div className="flex justify-between items-center mb-8 border-b border-slate-100 dark:border-slate-700 pb-4">
               <div className="flex items-center gap-3">
-                <ShoppingBag className="text-blue-600 dark:text-blue-500 w-6 h-6" />
-                <h2 className="text-xl font-bold tracking-tight text-foreground">Pesanan Anda ({items.length})</h2>
+                <ReceiptText className="text-blue-600 dark:text-blue-500 w-6 h-6" />
+                <h2 className="text-xl font-bold tracking-tight text-foreground">Rincian Pesanan ({items.length})</h2>
               </div>
               <Link href="/cart" className="text-blue-600 dark:text-blue-400 text-sm font-semibold hover:underline">Edit Pesanan</Link>
             </div>
@@ -275,9 +285,10 @@ export default function CheckoutPage() {
                     <div className="grow">
                       <div className="flex justify-between mb-1">
                         <h3 className="font-bold text-foreground text-sm">{item.name}</h3>
-                        <span className="font-bold text-foreground text-sm">{formatRupiah(item.price)}</span>
+                        <span className="font-bold text-foreground text-sm">{formatRupiah(item.price * item.quantity)}</span>
                       </div>
-                      <p className="text-xs text-foreground/60 mb-2">Size: {item.selectedSize} | Warna: {item.selectedColor}</p>
+                      {/* PENGHAPUSAN TEKS WARNA DI SINI */}
+                      <p className="text-xs text-foreground/60 mb-2">Size: {item.selectedSize}</p>
                       <span className="text-xs font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md text-foreground">Qty: {item.quantity}</span>
                     </div>
                   </div>
@@ -289,7 +300,7 @@ export default function CheckoutPage() {
 
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-slate-900 dark:bg-slate-800 border border-transparent dark:border-slate-700 text-white p-8 rounded-3xl shadow-xl sticky top-28">
-            <h2 className="text-xl font-bold tracking-tight mb-8">Ringkasan Pembayaran</h2>
+            <h2 className="text-xl font-bold tracking-tight mb-8">Total Pembayaran</h2>
             <div className="space-y-4 mb-8">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400">Subtotal Produk</span>
@@ -297,18 +308,23 @@ export default function CheckoutPage() {
               </div>
               
               <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Pengiriman {baseShipping > 0 ? (shippingType === 'reguler' ? '(Reguler)' : '(Ekspres)') : ''}</span>
+                <span className="text-slate-400">Pajak PPN (10%)</span>
+                <span className="font-medium text-white">{formatRupiah(tax)}</span>
+              </div>
+
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Pengiriman {baseShipping > 0 ? (shippingType === 'reguler' ? '(Reg.)' : '(Eks.)') : ''}</span>
                 <span className="font-medium text-white">{formatRupiah(shippingCost)}</span>
               </div>
               
               <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Biaya Admin Sistem</span>
+                <span className="text-slate-400">Biaya Layanan DOKU</span>
                 <span className="font-medium text-white">{formatRupiah(adminFee)}</span>
               </div>
               
               <div className="pt-4 border-t border-slate-700 flex justify-between items-end">
                 <span className="text-lg font-bold">Total</span>
-                <span className="text-2xl font-black tracking-tighter text-blue-400">{formatRupiah(total)}</span>
+                <span className="text-2xl font-black tracking-tighter text-blue-400">{formatRupiah(grandTotal)}</span>
               </div>
             </div>
             
@@ -319,10 +335,7 @@ export default function CheckoutPage() {
                 className="w-full py-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-500 shadow-lg shadow-blue-900/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
               >
                 {isProcessing ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Menghubungi DOKU...
-                  </>
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Menghubungkan...</>
                 ) : (
                   <>Bayar dengan DOKU <ArrowRight className="w-4 h-4" /></>
                 )}

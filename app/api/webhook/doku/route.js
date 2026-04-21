@@ -1,89 +1,71 @@
-import crypto from 'crypto';
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Inisialisasi Supabase (Harus menggunakan Service Role Key jika melewati RLS)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-// Gunakan ANON KEY untuk saat ini karena RLS Anda dimatikan (sesuai testing sebelumnya)
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; 
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from '../../../../lib/supabase'; // Sesuaikan path jika folder lib Anda ada di luar folder app
 
 export async function POST(req) {
   try {
-    // 1. Ambil body JSON dari request DOKU
     const body = await req.json();
-    const rawBody = JSON.stringify(body);
+    
+    // Asumsi payload DOKU Jokul standar. Invoice Number biasanya dikirim oleh DOKU.
+    const invoiceNumber = body?.order?.invoice_number;
 
-    // 2. Ambil Header penting dari DOKU untuk verifikasi keamanan
-    const signature = req.headers.get('signature');
-    const clientId = req.headers.get('client-id');
-    const requestId = req.headers.get('request-id');
-    const requestTimestamp = req.headers.get('request-timestamp');
-
-    const secretKey = process.env.DOKU_SECRET_KEY;
-    const path = '/api/webhook/doku'; // Sesuai dengan rute file ini
-
-    // 3. Validasi: Pastikan Header Signature ada
-    if (!signature || !clientId || !requestId || !requestTimestamp) {
-      console.error("Webhook Error: Header tidak lengkap.");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!invoiceNumber) {
+      return NextResponse.json({ error: "Payload tidak valid atau Invoice Number tidak ditemukan." }, { status: 400 });
     }
 
-    // 4. VERIFIKASI KEAMANAN (Mencegah Hacker memalsukan pembayaran)
-    // Membuat ulang signature dari data yang diterima
-    const digestHash = crypto.createHash('sha256').update(rawBody).digest('base64');
-    const componentSignature = `Client-Id:${clientId}\nRequest-Id:${requestId}\nRequest-Timestamp:${requestTimestamp}\nRequest-Target:${path}\nDigest:${digestHash}`;
-    const hmacSignature = crypto.createHmac('sha256', secretKey).update(componentSignature).digest('base64');
-    const expectedSignature = `HMACSHA256=${hmacSignature}`;
+    // 1. UPDATE STATUS PESANAN JADI 'PAID'
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .update({ status: 'PAID' })
+      .eq('invoice_number', invoiceNumber)
+      .select('*')
+      .single();
 
-    // Cocokkan signature dari DOKU dengan buatan kita
-    if (signature !== expectedSignature) {
-      console.error("Webhook Error: Signature tidak cocok (Kemungkinan percobaan peretasan).");
-      return NextResponse.json({ error: "Invalid Signature" }, { status: 401 });
+    if (orderError || !orderData) {
+      console.error("Pesanan tidak ditemukan:", orderError);
+      return NextResponse.json({ error: "Gagal memperbarui status pesanan." }, { status: 500 });
     }
 
-    // 5. PROSES UPDATE DATABASE SUPABASE
-    // DOKU akan mengirim data order di dalam objek: body.order
-    if (body.order && body.order.invoice_number) {
-      const invoiceNumber = body.order.invoice_number;
-      
-      // Ambil status dari DOKU (Biasanya 'SUCCESS' jika lunas)
-      const dokuStatus = body.transaction?.status || body.order.status; 
+    // 2. LOGIKA CERDAS: PEMOTONGAN STOK FISIK OTOMATIS
+    // Parsing daftar barang yang dibeli dari pesanan ini
+    let items = [];
+    try {
+      items = typeof orderData.items === 'string' ? JSON.parse(orderData.items) : orderData.items;
+    } catch (e) {
+      console.error("Gagal parsing items pesanan:", e);
+    }
 
-      console.log(`\n🛎️ WEBHOOK DITERIMA! Invoice: ${invoiceNumber} | Status: ${dokuStatus}`);
+    // Loop setiap barang untuk memotong stoknya di tabel Products
+    for (const item of items) {
+      // Ambil data produk terbaru dari database
+      const { data: product } = await supabase
+        .from('products')
+        .select('sizes')
+        .eq('id', item.id)
+        .single();
 
-      // Jika DOKU menyatakan SUCCESS (Lunas)
-      if (dokuStatus === 'SUCCESS') {
-        const { error } = await supabase
-          .from('orders')
-          .update({ status: 'PAID' }) // Kita standarkan status di Supabase kita jadi 'PAID'
-          .eq('invoice_number', invoiceNumber);
+      if (product && product.sizes) {
+        let sizesMatrix = typeof product.sizes === 'string' ? JSON.parse(product.sizes) : product.sizes;
 
-        if (error) {
-          console.error("Supabase Error Update:", error);
-          return NextResponse.json({ error: "Gagal update database" }, { status: 500 });
+        // Cek apakah ukuran yang dibeli (selectedSize) ada di database
+        if (sizesMatrix[item.selectedSize]) {
+          // Kurangi stok saat ini dengan jumlah yang dibeli (quantity)
+          // Math.max(0, ...) memastikan stok tidak akan jadi minus (negatif)
+          const currentStock = sizesMatrix[item.selectedSize].stock || 0;
+          sizesMatrix[item.selectedSize].stock = Math.max(0, currentStock - item.quantity);
+
+          // Simpan kembali matriks stok yang baru ke tabel Products
+          await supabase
+            .from('products')
+            .update({ sizes: sizesMatrix })
+            .eq('id', item.id);
         }
-        
-        console.log(`✅ BERHASIL UPDATE INVOICE ${invoiceNumber} MENJADI PAID`);
-      } else {
-         // Jika Gagal atau Expired
-         const { error } = await supabase
-          .from('orders')
-          .update({ status: 'FAILED' }) 
-          .eq('invoice_number', invoiceNumber);
-
-          if (!error) console.log(`❌ INVOICE ${invoiceNumber} DIBATALKAN / GAGAL`);
       }
-
-      // 6. WAJIB BALAS STATUS 200 KE DOKU AGAR MEREKA TIDAK RETRY (Mengirim terus-menerus)
-      return NextResponse.json({ message: "Webhook processed successfully" }, { status: 200 });
-      
-    } else {
-      return NextResponse.json({ error: "Format data tidak sesuai ekspektasi" }, { status: 400 });
     }
+
+    return NextResponse.json({ message: "Webhook berhasil diproses & Stok telah diperbarui." }, { status: 200 });
 
   } catch (error) {
-    console.error("Webhook Catch Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Error Webhook:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

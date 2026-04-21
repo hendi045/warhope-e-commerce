@@ -14,7 +14,7 @@ export default function SuccessPage() {
   }, [clearCart]);
 
   return (
-    <main className="pt-32 pb-20 px-4 md:px-8 max-w-3xl mx-auto min-h-[80vh] flex flex-col items-center justify-center text-center bg-background">
+    <main className="pt-8 pb-20 px-4 md:px-8 max-w-3xl mx-auto min-h-[80vh] flex flex-col items-center justify-center text-center bg-background">
       
       <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-8">
         <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-500" />

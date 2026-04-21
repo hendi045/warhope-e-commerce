@@ -2,8 +2,8 @@
 
 /* Tema Premium Streetwear (Wabi-Sabi x Modern Casual) */
 :root {
-  /* Latar belakang cerah yang lebih lembut (Off-white / Slate-50) */
-  --background: #f8f9fa;
+  /* PERBAIKAN: Latar belakang abu-abu sangat muda (Slate 100) agar Card (putih) terlihat jelas batasnya */
+  --background: #f1f5f9;
   /* Teks gelap Charcoal (Slate-900) */
   --foreground: #0f172a;
 }
@@ -17,10 +17,10 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Latar belakang gelap yang elegan (Dark Charcoal), BUKAN hitam pekat */
-    --background: #0f172a; 
+    /* PERBAIKAN: Latar belakang sangat gelap (Slate 950) agar Card (Slate 900/800) terlihat sangat kontras dan tidak nyaru */
+    --background: #020617; 
     /* Teks putih redup agar tidak menyilaukan mata */
-    --foreground: #f1f5f9; 
+    --foreground: #f8fafc; 
   }
 }
 
