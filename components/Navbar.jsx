@@ -14,13 +14,15 @@ export default function Navbar() {
   const pathname = usePathname();
   
   const items = useCartStore((state) => state.items);
+  // Ambil data wishlist dan fungsi sync-nya
   const wishlistItems = useWishlistStore((state) => state.wishlist); 
+  const syncWishlistFromDB = useWishlistStore((state) => state.syncWishlistFromDB);
+
   const { user, isInitialized } = useAuthStore();
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // --- STATE UNTUK FITUR PENCARIAN ---
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
@@ -32,14 +34,22 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Fetch Produk untuk Search
+  // PENGAMBILAN PRODUK & SINKRONISASI WISHLIST OTOMATIS
   useEffect(() => {
-    const fetchProductsForSearch = async () => {
+    const fetchProductsAndSync = async () => {
       const data = await getAllProducts();
       setProducts(data || []);
+
+      // Jika user sudah login dan produk ada, segera tarik data Wishlist dari Cloud
+      if (user?.email && data?.length > 0) {
+        syncWishlistFromDB(user.email, data);
+      }
     };
-    fetchProductsForSearch();
-  }, []);
+
+    if (isInitialized) {
+      fetchProductsAndSync();
+    }
+  }, [user, isInitialized, syncWishlistFromDB]);
 
   const searchResults = useMemo(() => {
     if (searchQuery.trim() === '') return [];
@@ -85,7 +95,6 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
             <Link href="/" className={`text-sm font-bold transition-colors ${pathname === '/' ? 'text-blue-600 dark:text-blue-400' : 'text-foreground/70 hover:text-foreground'}`}>Beranda</Link>
             <Link href="/#katalog" className={`text-sm font-bold transition-colors ${pathname === '/katalog' ? 'text-blue-600 dark:text-blue-400' : 'text-foreground/70 hover:text-foreground'}`}>Katalog</Link>
-            {/* PERBAIKAN TAUTAN TENTANG KAMI */}
             <Link href="/about" className={`text-sm font-bold transition-colors ${pathname === '/about' ? 'text-blue-600 dark:text-blue-400' : 'text-foreground/70 hover:text-foreground'}`}>Tentang Kami</Link>
           </div>
 
@@ -194,7 +203,6 @@ export default function Navbar() {
         <div className="flex flex-col gap-6 text-xl font-bold text-foreground">
           <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>Beranda</Link>
           <Link href="/#katalog" onClick={() => setIsMobileMenuOpen(false)}>Katalog Produk</Link>
-          {/* PERBAIKAN TAUTAN TENTANG KAMI DI MOBILE */}
           <Link href="/about" onClick={() => setIsMobileMenuOpen(false)}>Tentang Kami</Link>
           {user && <Link href="/wishlist" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-between">Wishlist Saya {wishlistItems.length > 0 && <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full">{wishlistItems.length}</span>}</Link>}
           <Link href="/cart" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-between">Keranjang Belanja {items.length > 0 && <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full">{items.length}</span>}</Link>

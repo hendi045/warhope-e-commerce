@@ -73,8 +73,8 @@ export default function AddToCartButton({ product }) {
       return;
     }
 
-    // Eksekusi Toggle ke State
-    toggleWishlist(product);
+    // Eksekusi Toggle ke State (DITAMBAHKAN: parameter user.email untuk sinkronisasi Database)
+    toggleWishlist(product, user.email);
     
     // LOGIKA NOTIFIKASI YANG BENAR:
     // Jika sebelumnya belum ada (!isWished), berarti sekarang DITAMBAHKAN.

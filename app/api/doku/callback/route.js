@@ -79,16 +79,40 @@ export async function POST(req) {
 
     // Jika transaksinya SUKSES, perbarui status di Supabase menjadi PAID
     if (paymentStatus === 'SUCCESS') {
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('orders')
             .update({ status: 'PAID' }) // Ubah status menjadi PAID (Lunas)
-            .eq('invoice_number', invoiceNumber); // Cocokkan berdasarkan Nomor Invoice
+            .eq('invoice_number', invoiceNumber) // Cocokkan berdasarkan Nomor Invoice
+            .select()
+            .single(); // PERBAIKAN: Ambil datanya untuk dikirim ke email
 
         if (error) {
             console.error(`Gagal update Supabase untuk invoice ${invoiceNumber}:`, error);
             return NextResponse.json({ error: "Gagal update database" }, { status: 500 });
         }
         console.log(`Berhasil update status menjadi PAID untuk ${invoiceNumber}`);
+
+        // --- FITUR BARU: TEMBAK EMAIL OTOMATIS (KESEPAKATAN KITA) ---
+        if (data && data.customer_email) {
+          try {
+            // Karena ini di sisi server, kita panggil API email menggunakan absolute/internal URL
+            const originUrl = req.headers.get('origin') || 'http://localhost:3000';
+            await fetch(`${originUrl}/api/send-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                to: data.customer_email,
+                subject: `Pembayaran Berhasil - Invoice ${data.invoice_number}`,
+                type: 'PAID',
+                orderData: data
+              })
+            });
+            console.log(`Email konfirmasi LUNAS dikirim ke ${data.customer_email}`);
+          } catch (emailErr) {
+            console.error("Gagal menembak API Email:", emailErr);
+          }
+        }
+
     } else if (paymentStatus === 'FAILED' || paymentStatus === 'EXPIRED') {
         const { error: updateError } = await supabase
             .from('orders')
