@@ -1,16 +1,21 @@
 import React, { useMemo } from 'react';
-import { TrendingUp, CheckCircle, Users, BarChart3, Award, RefreshCw } from 'lucide-react';
+import { Users, BarChart3, Award, RefreshCw, DollarSign, ShoppingBag, Clock } from 'lucide-react';
 import { formatRupiah } from '../utils';
 
 export default function DashboardTab({ orders, onRefresh }) {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
   const dashboardStats = useMemo(() => {
+    // Pesanan yang sudah masuk uangnya (Real-Time)
     const paidOrders = orders.filter(o => ['PAID', 'SUCCESS', 'DIKIRIM'].includes(o.status?.toUpperCase()));
-    
     const totalRevenue = paidOrders.reduce((acc, curr) => acc + (curr.total_amount || 0), 0);
-    const uniqueCustomers = new Set(paidOrders.map(o => o.customer_email)).size;
+    
+    // Matriks lainnya
+    const totalOrders = orders.length;
+    const pendingOrdersCount = orders.filter(o => o.status === 'PENDING').length;
+    const uniqueCustomers = new Set(orders.map(o => o.customer_email)).size;
 
+    // Grafik Bulanan
     const monthlyRevenue = Array(12).fill(0);
     paidOrders.forEach(o => {
       const month = new Date(o.created_at).getMonth(); 
@@ -18,6 +23,7 @@ export default function DashboardTab({ orders, onRefresh }) {
     });
     const maxMonthlyRevenue = Math.max(...monthlyRevenue, 1); 
 
+    // Performa Produk (Best Seller)
     const productSales = {};
     paidOrders.forEach(o => {
       let items = [];
@@ -34,7 +40,7 @@ export default function DashboardTab({ orders, onRefresh }) {
 
     const topProducts = Object.values(productSales).sort((a, b) => b.soldQty - a.soldQty).slice(0, 5);
 
-    return { totalRevenue, uniqueCustomers, paidOrdersCount: paidOrders.length, monthlyRevenue, maxMonthlyRevenue, topProducts };
+    return { totalRevenue, totalOrders, pendingOrdersCount, uniqueCustomers, monthlyRevenue, maxMonthlyRevenue, topProducts };
   }, [orders]);
 
   return (
@@ -44,23 +50,28 @@ export default function DashboardTab({ orders, onRefresh }) {
           <h2 className="text-3xl font-bold tracking-tight text-foreground">Ringkasan Bisnis</h2>
           <p className="text-slate-500 dark:text-slate-400 mt-1">Pantau performa penjualan dan statistik utama toko Anda.</p>
         </div>
-        <button onClick={onRefresh} className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
+        <button onClick={onRefresh} className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm active:scale-95">
           <RefreshCw className="w-4 h-4" /> Perbarui Data
         </button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-linear-to-br from-blue-600 to-indigo-700 p-6 rounded-3xl shadow-lg shadow-blue-900/20 text-white flex items-center gap-4">
-          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center shrink-0"><TrendingUp className="w-6 h-6" /></div>
-          <div><p className="text-sm font-semibold text-blue-100">Total Pendapatan</p><h3 className="text-2xl font-black">{formatRupiah(dashboardStats.totalRevenue)}</h3></div>
+      {/* 4 KARTU METRIK UTAMA */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center shrink-0"><DollarSign className="w-7 h-7" /></div>
+          <div><p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Pendapatan</p><h3 className="text-xl font-black text-foreground">{formatRupiah(dashboardStats.totalRevenue)}</h3></div>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0"><CheckCircle className="w-6 h-6" /></div>
-          <div><p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Pesanan Sukses</p><h3 className="text-2xl font-black text-foreground">{dashboardStats.paidOrdersCount} Transaksi</h3></div>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center shrink-0"><ShoppingBag className="w-7 h-7" /></div>
+          <div><p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Pesanan</p><h3 className="text-xl font-black text-foreground">{dashboardStats.totalOrders}</h3></div>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-2xl flex items-center justify-center shrink-0"><Users className="w-6 h-6" /></div>
-          <div><p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Total Pelanggan</p><h3 className="text-2xl font-black text-foreground">{dashboardStats.uniqueCustomers} Orang</h3></div>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 flex items-center justify-center shrink-0"><Clock className="w-7 h-7" /></div>
+          <div><p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Pesanan Pending</p><h3 className="text-xl font-black text-foreground">{dashboardStats.pendingOrdersCount}</h3></div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 flex items-center justify-center shrink-0"><Users className="w-7 h-7" /></div>
+          <div><p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Pelanggan</p><h3 className="text-xl font-black text-foreground">{dashboardStats.uniqueCustomers}</h3></div>
         </div>
       </div>
 

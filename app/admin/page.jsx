@@ -3,13 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-// PERBAIKAN PATH (MUNDUR 2 TINGKAT KARENA FILE INI DI app/admin/)
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useToastStore } from '../../store/toastStore';
 import { getAllProducts } from '../../lib/api';
 
-// IMPORT KOMPONEN (MUNDUR 0 TINGKAT KARENA FOLDER components ADA DI DALAM admin)
 import Sidebar from './components/Sidebar';
 import DashboardTab from './components/DashboardTab';
 import OrdersTab from './components/OrdersTab';
@@ -76,6 +74,9 @@ export default function AdminDashboard() {
     fetchProducts();
   };
 
+  // HITUNG PESANAN PENDING UNTUK BADGE SIDEBAR
+  const pendingOrdersCount = orders.filter(o => o.status === 'PENDING').length;
+
   if (!isInitialized || user?.role !== 'admin') {
     return <div className="fixed inset-0 z-100 bg-slate-50 dark:bg-slate-900"></div>;
   }
@@ -86,7 +87,8 @@ export default function AdminDashboard() {
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
-        handleLogout={handleLogout} 
+        handleLogout={handleLogout}
+        pendingOrdersCount={pendingOrdersCount} 
       />
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">

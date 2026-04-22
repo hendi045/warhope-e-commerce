@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Heart, CheckCircle2, Mail, ArrowRight, Sparkles, ShieldCheck, Truck, Star } from 'lucide-react';
+import { Heart, CheckCircle2, Mail, ArrowRight, Sparkles, ShieldCheck, Truck, Star, ArrowDownAZ, ArrowUpZA } from 'lucide-react';
 import { getAllProducts } from '../lib/api';
 import AddToCartButton from '../components/AddToCartButton';
 
@@ -19,10 +19,12 @@ interface Product {
 }
 
 export default function Home() {
-  // 2. State diberikan tipe <Product[]> sehingga bukan lagi never[]
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // STATE UNTUK FILTER & SORTING
   const [activeCategory, setActiveCategory] = useState('Semua');
+  const [sortOrder, setSortOrder] = useState<'default' | 'murah' | 'mahal'>('default');
 
   // Mengambil data produk dari Supabase saat halaman dimuat
   useEffect(() => {
@@ -36,12 +38,11 @@ export default function Home() {
     fetchProducts();
   }, []);
 
-  // 3. Parameter diberikan tipe number
   const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
   };
 
-  // Menghitung jumlah produk per kategori secara dinamis dari database
+  // Menghitung jumlah produk per kategori secara dinamis
   const categories = [
     { name: 'Semua', count: products.length },
     { name: 'T-Shirts', count: products.filter(p => p.category === 'T-Shirts').length },
@@ -50,17 +51,30 @@ export default function Home() {
     { name: 'Accessories', count: products.filter(p => p.category === 'Accessories').length },
   ];
 
-  // Filter produk berdasarkan kategori yang dipilih
-  const filteredProducts = activeCategory === 'Semua' 
-    ? products 
-    : products.filter(p => p.category === activeCategory);
+  // LOGIKA CERDAS: Filter Kategori KEMUDIAN Sorting Harga
+  const getProcessedProducts = () => {
+    // 1. Filter Kategori
+    // PERBAIKAN: Menggunakan const alih-alih let sesuai saran linter
+    const result = activeCategory === 'Semua' 
+      ? [...products] 
+      : products.filter(p => p.category === activeCategory);
+
+    // 2. Sorting Harga
+    if (sortOrder === 'murah') {
+      result.sort((a, b) => a.price - b.price); // Termurah ke Termahal
+    } else if (sortOrder === 'mahal') {
+      result.sort((a, b) => b.price - a.price); // Termahal ke Termurah
+    }
+
+    return result;
+  };
+
+  const processedProducts = getProcessedProducts();
 
   return (
-    // PERBAIKAN: Padding top dikurangi agar pas dengan layout
     <main className="pt-4 md:pt-8 pb-16 max-w-7xl mx-auto px-4 sm:px-6 min-h-screen bg-background">
       
-      {/* --- HERO SECTION (BENTO GRID STYLE) --- */}
-      {/* PERBAIKAN: pt-20 dihapus dari section ini agar tidak terjadi double-padding */}
+      {/* --- HERO SECTION --- */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-16">
         <div className="md:col-span-2 relative bg-slate-200 dark:bg-slate-800 rounded-4xl overflow-hidden min-h-100 md:min-h-125 group">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -69,7 +83,6 @@ export default function Home() {
             alt="Fashion Lifestyle" 
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
           />
-          {/* Perbaikan Tailwind linter: bg-linear-to-t */}
           <div className="absolute inset-0 bg-linear-to-t from-slate-900/90 via-slate-900/20 to-transparent"></div>
           <div className="absolute bottom-0 left-0 p-8 md:p-12 text-white">
             <span className="inline-block bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-4 border border-white/20">
@@ -142,18 +155,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- CATALOG SECTION DENGAN DATA SUPABASE --- */}
+      {/* --- CATALOG SECTION --- */}
       <section id="katalog" className="scroll-mt-32">
-        <div className="flex justify-between items-end mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
           <div>
             <span className="text-blue-600 font-bold text-xs tracking-widest uppercase mb-2 block">Katalog Utama</span>
             <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">Kurasi Pilihan</h2>
+          </div>
+          
+          {/* TOMBOL PENGURUTAN HARGA DI SEBELAH KANAN ATAS */}
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm w-full sm:w-auto">
+            <button 
+              onClick={() => setSortOrder('default')}
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex-1 sm:flex-none ${sortOrder === 'default' ? 'bg-slate-100 dark:bg-slate-700 text-foreground' : 'text-foreground/50 hover:text-foreground'}`}
+            >
+              Terbaru
+            </button>
+            <button 
+              onClick={() => setSortOrder('murah')}
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 flex-1 sm:flex-none ${sortOrder === 'murah' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-foreground/50 hover:text-foreground'}`}
+            >
+              <ArrowDownAZ className="w-3.5 h-3.5" /> Termurah
+            </button>
+            <button 
+              onClick={() => setSortOrder('mahal')}
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 flex-1 sm:flex-none ${sortOrder === 'mahal' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-foreground/50 hover:text-foreground'}`}
+            >
+              <ArrowUpZA className="w-3.5 h-3.5" /> Termahal
+            </button>
           </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
           
-          {/* SIDEBAR FILTER */}
+          {/* SIDEBAR FILTER KATEGORI */}
           <aside className="w-full lg:w-64 shrink-0">
             <div className="bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl sticky top-28 shadow-sm transition-colors">
               <h3 className="text-xs font-bold uppercase tracking-widest text-foreground/40 mb-6">Filter Kategori</h3>
@@ -190,14 +225,14 @@ export default function Home() {
                   <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
                 </div>
               ))
-            ) : filteredProducts.length === 0 ? (
+            ) : processedProducts.length === 0 ? (
               // JIKA KOSONG
               <div className="col-span-full py-12 text-center text-foreground/60 bg-white/50 dark:bg-slate-800/20 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
                 <p>Belum ada produk di database untuk kategori ini.</p>
               </div>
             ) : (
               // LOOPING DATA PRODUK
-              filteredProducts.map((product: Product) => (
+              processedProducts.map((product: Product) => (
                 <div key={product.id} className="bg-white dark:bg-slate-800/50 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 hover:shadow-xl hover:border-slate-200 dark:hover:border-slate-700 transition-all duration-300 overflow-hidden group flex flex-col">
                   <Link href={`/product/${product.id}`} className="block aspect-4/5 bg-slate-100 dark:bg-slate-900 relative overflow-hidden p-2">
                     <div className="w-full h-full rounded-2xl overflow-hidden relative">

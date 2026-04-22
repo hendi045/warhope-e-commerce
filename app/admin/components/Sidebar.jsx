@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { LayoutDashboard, ShoppingBag, PackageSearch, LogOut, ArrowLeft } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, handleLogout }) {
+export default function Sidebar({ activeTab, setActiveTab, handleLogout, pendingOrdersCount }) {
   
   // Fungsi penahan (Guard) sebelum logout asli dijalankan
   const confirmLogout = () => {
@@ -17,7 +17,7 @@ export default function Sidebar({ activeTab, setActiveTab, handleLogout }) {
       <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between md:justify-start">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/warhope-clear.PNG" alt="Warhope Logo" className="h-4 md:h-6 w-auto object-contain dark:invert transition-all hover:scale-105" />
+          <img src="/assets/warhope-clear.PNG" alt="Warhope Logo" className="h-6 md:h-8 w-auto object-contain dark:invert transition-all hover:scale-105" />
           <span className="text-[10px] font-black px-2 py-1 bg-blue-100 text-blue-600 rounded-md hidden lg:inline-block tracking-widest">ADMIN</span>
         </div>
       </div>
@@ -26,8 +26,9 @@ export default function Sidebar({ activeTab, setActiveTab, handleLogout }) {
         <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center justify-center md:justify-start gap-3 px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
           <LayoutDashboard className="w-5 h-5 shrink-0" /> <span className="hidden sm:inline-block">Ringkasan</span>
         </button>
-        <button onClick={() => setActiveTab('orders')} className={`w-full flex items-center justify-center md:justify-start gap-3 px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'orders' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-          <ShoppingBag className="w-5 h-5 shrink-0" /> <span className="hidden sm:inline-block">Pesanan</span>
+        <button onClick={() => setActiveTab('orders')} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'orders' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+          <div className="flex items-center gap-3"><ShoppingBag className="w-5 h-5 shrink-0" /> <span className="hidden sm:inline-block">Pesanan</span></div>
+          {pendingOrdersCount > 0 && <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full">{pendingOrdersCount}</span>}
         </button>
         <button onClick={() => setActiveTab('products')} className={`w-full flex items-center justify-center md:justify-start gap-3 px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'products' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
           <PackageSearch className="w-5 h-5 shrink-0" /> <span className="hidden sm:inline-block">Katalog Produk</span>

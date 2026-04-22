@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Search, Eye, X, Truck, Clock, CheckCircle, MapPin, Mail, Phone } from 'lucide-react';
 import { formatRupiah, formatDate, getStatusBadge } from '../utils';
 
-// PERBAIKAN PATH (MUNDUR 3 TINGKAT)
 import { useToastStore } from '../../../store/toastStore';
 import { supabase } from '../../../lib/supabase';
 
@@ -16,10 +15,26 @@ export default function OrdersTab({ orders, isLoadingOrders, fetchOrders }) {
   const filteredOrders = orders.filter(order => order.invoice_number?.toLowerCase().includes(searchOrderTerm.toLowerCase()) || order.customer_name?.toLowerCase().includes(searchOrderTerm.toLowerCase()));
 
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
-    setIsUpdatingStatus(true);
     try {
-      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+      let trackingNumber = null;
+
+      // LOGIKA INPUT RESI: Minta input jika status diubah ke DIKIRIM
+      if (newStatus === 'DIKIRIM') {
+        trackingNumber = window.prompt("Masukkan Nomor Resi Pengiriman (Biarkan kosong jika tidak ada):");
+        if (trackingNumber === null) return; // User menekan tombol Cancel pada prompt
+      } else {
+        const isConfirmed = window.confirm(`Ubah status pesanan menjadi ${newStatus}?`);
+        if (!isConfirmed) return;
+      }
+
+      setIsUpdatingStatus(true);
+      
+      const payload = { status: newStatus };
+      if (trackingNumber) payload.tracking_number = trackingNumber; // Lampirkan resi jika ada input
+
+      const { error } = await supabase.from('orders').update(payload).eq('id', orderId);
       if (error) throw error;
+      
       addToast(`Status pesanan diubah menjadi ${newStatus}`, 'success');
       fetchOrders(); 
       setIsOrderModalOpen(false);
@@ -74,7 +89,12 @@ export default function OrdersTab({ orders, isLoadingOrders, fetchOrders }) {
                     <td className="px-6 py-4"><p className="font-bold text-foreground">{order.invoice_number}</p><p className="text-xs text-slate-500">{formatDate(order.created_at)}</p></td>
                     <td className="px-6 py-4"><p className="font-semibold text-foreground">{order.customer_name}</p><p className="text-xs text-slate-500 max-w-50 truncate" title={order.shipping_address}>{order.shipping_address}</p></td>
                     <td className="px-6 py-4 font-bold text-foreground">{formatRupiah(order.total_amount)}</td>
-                    <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
+                    <td className="px-6 py-4">
+                      {getStatusBadge(order.status)}
+                      {order.tracking_number && (
+                        <p className="text-[10px] font-bold text-blue-600 mt-1 bg-blue-50 px-2 py-0.5 rounded inline-block">Resi: {order.tracking_number}</p>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-center">
                       <button onClick={() => { setSelectedOrder(order); setIsOrderModalOpen(true); }} className="p-2 text-blue-600 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition-colors" title="Lihat Detail"><Eye className="w-5 h-5" /></button>
                     </td>
@@ -109,6 +129,14 @@ export default function OrdersTab({ orders, isLoadingOrders, fetchOrders }) {
                       <div className="flex items-start gap-3"><div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm shrink-0"><Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" /></div><div><p className="text-xs text-slate-500">Email</p><p className="font-bold text-foreground">{selectedOrder.customer_email}</p></div></div>
                       <div className="flex items-start gap-3"><div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm shrink-0"><Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" /></div><div><p className="text-xs text-slate-500">Nomor WhatsApp</p><p className="font-bold text-foreground">{selectedOrder.customer_phone}</p></div></div>
                       <div className="flex items-start gap-3"><div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm shrink-0"><MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" /></div><div><p className="text-xs text-slate-500">Alamat Pengiriman</p><p className="font-bold text-foreground text-sm leading-relaxed">{selectedOrder.shipping_address}</p></div></div>
+                      
+                      {/* TAMPILAN RESI DI DALAM MODAL */}
+                      {selectedOrder.tracking_number && (
+                        <div className="flex items-start gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                          <div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm shrink-0"><Truck className="w-4 h-4 text-blue-600 dark:text-blue-400" /></div>
+                          <div><p className="text-xs text-slate-500">Nomor Resi</p><p className="font-black tracking-wider text-blue-600 dark:text-blue-400">{selectedOrder.tracking_number}</p></div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -123,7 +151,7 @@ export default function OrdersTab({ orders, isLoadingOrders, fetchOrders }) {
                         </div>
                         <div className="flex-1 flex flex-col justify-center">
                           <h5 className="font-bold text-foreground text-sm leading-tight">{item.name}</h5>
-                          <div className="flex gap-2 mt-1"><span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-300">Size: {item.selectedSize}</span><span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-300">Color: {item.selectedColor || '-'}</span></div>
+                          <div className="flex gap-2 mt-1"><span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-300">Size: {item.selectedSize}</span></div>
                           <div className="flex justify-between items-end mt-2"><span className="text-xs font-bold text-foreground">Qty: {item.quantity}</span><span className="font-black text-blue-600 dark:text-blue-400 text-sm">{formatRupiah(item.price)}</span></div>
                         </div>
                       </div>
