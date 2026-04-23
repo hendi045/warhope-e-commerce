@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     description: "Koleksi streetwear premium dengan kualitas material terbaik. Tampil beda dengan gaya urban sejati bersama Warhope.",
     images: [
       {
-        url: "/assets/warhope-og-banner.png", // Gambar banner yang akan muncul saat link dibagikan
+        url: "/assets/warhope-og-banner.png", // Diperbarui menjadi .png
         width: 1200,
         height: 630,
         alt: "Warhope Apparel Official Banner",
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Warhope Apparel | Premium Streetwear",
     description: "Koleksi streetwear premium dengan kualitas material terbaik. Wujudkan gaya urban Anda!",
-    images: ["/assets/warhope-og-banner.png"],
+    images: ["/assets/warhope-og-banner.png"], // Diperbarui menjadi .png
   },
   
   // Konfigurasi Robot Crawler Google
