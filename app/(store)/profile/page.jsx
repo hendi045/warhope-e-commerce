@@ -6,23 +6,20 @@ import Link from 'next/link';
 import { 
   User, Package, Settings, LogOut, 
   Clock, CheckCircle, Truck, XCircle, 
-  MapPin, Mail, Phone, ShoppingBag, AlertTriangle, CreditCard, Copy
+  MapPin, Mail, Phone, ShoppingBag, AlertTriangle, CreditCard, Copy, AlertCircle
 } from 'lucide-react';
 
-// IMPORT SELURUH STORE YANG DIBUTUHKAN
 import { useAuthStore } from '../../../store/authStore';
 import { useToastStore } from '../../../store/toastStore';
 import { useCartStore } from '../../../store/cartStore';
 import { useWishlistStore } from '../../../store/wishlistStore';
 import { supabase } from '../../../lib/supabase';
 
-// WAKTU KEDALUWARSA PEMBAYARAN (24 Jam dalam milidetik)
 const PAYMENT_TIMEOUT_MS = 24 * 60 * 60 * 1000; 
 
 export default function ProfilePage() {
   const router = useRouter();
   
-  // DEKLARASI STATE & FUNGSI DARI STORE ZUSTAND
   const { user, isInitialized, checkAuth, logout } = useAuthStore();
   const addToast = useToastStore((state) => state.addToast);
   const clearCart = useCartStore((state) => state.clearCart); 
@@ -32,6 +29,9 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('orders');
   const [orders, setOrders] = useState([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  
+  // STATE BARU: CUSTOM MODAL UNTUK LOGOUT & BATAL PESANAN
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, payload: null, title: '', message: '' });
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 
   useEffect(() => {
@@ -95,36 +95,52 @@ export default function ProfilePage() {
     }
   }, [isClient, user, addToast]);
 
-  // FUNGSI LOGOUT YANG SUDAH DIPERBAIKI (AMANG BUG-FREE)
-  const handleLogout = () => {
-    const isConfirmed = window.confirm("Apakah Anda yakin ingin keluar?");
-    if (isConfirmed) {
-      logout();
-      // KEAMANAN SESI: Kosongkan keranjang & wishlist menggunakan fungsi yang di-destructure
-      if (clearCart) clearCart();
-      if (clearWishlist) clearWishlist();
-      
-      addToast('Anda berhasil keluar.', 'info');
-      router.push('/');
-    }
+  // 1. FUNGSI PEMICU MODAL LOGOUT
+  const promptLogout = () => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'logout',
+      title: 'Keluar Akun?',
+      message: 'Apakah Anda yakin ingin keluar dari akun Anda saat ini?'
+    });
   };
 
-  const handleCancelOrder = async (orderId, invoiceNumber) => {
-    const isConfirmed = window.confirm(`Yakin ingin membatalkan pesanan ${invoiceNumber}?\nTindakan ini tidak dapat dikembalikan.`);
-    if (!isConfirmed) return;
+  // 2. FUNGSI PEMICU MODAL BATAL PESANAN
+  const promptCancelOrder = (orderId, invoiceNumber) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'cancel_order',
+      payload: orderId,
+      title: 'Batalkan Pesanan?',
+      message: `Anda yakin ingin membatalkan pesanan ${invoiceNumber}? Tindakan ini tidak dapat dikembalikan.`
+    });
+  };
 
-    setIsProcessingAction(true);
-    try {
-      const { error } = await supabase.from('orders').update({ status: 'CANCELED' }).eq('id', orderId);
-      if (error) throw error;
+  // 3. FUNGSI EKSEKUSI (DARI DALAM MODAL)
+  const executeConfirmAction = async () => {
+    if (confirmModal.type === 'logout') {
+      logout();
+      if (clearCart) clearCart();
+      if (clearWishlist) clearWishlist();
+      addToast('Anda berhasil keluar.', 'info');
+      router.push('/');
+    } 
+    else if (confirmModal.type === 'cancel_order') {
+      setIsProcessingAction(true);
+      try {
+        const orderId = confirmModal.payload;
+        const { error } = await supabase.from('orders').update({ status: 'CANCELED' }).eq('id', orderId);
+        if (error) throw error;
 
-      setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELED' } : o));
-      addToast(`Pesanan ${invoiceNumber} berhasil dibatalkan.`, 'success');
-    } catch (err) {
-      console.error(err);
-      addToast('Gagal membatalkan pesanan.', 'error');
-    } finally {
-      setIsProcessingAction(false);
+        setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELED' } : o));
+        addToast(`Pesanan berhasil dibatalkan.`, 'success');
+        setConfirmModal({ isOpen: false, type: null, payload: null, title: '', message: '' });
+      } catch (err) {
+        console.error(err);
+        addToast('Gagal membatalkan pesanan.', 'error');
+      } finally {
+        setIsProcessingAction(false);
+      }
     }
   };
 
@@ -189,7 +205,8 @@ export default function ProfilePage() {
               <Settings className="w-5 h-5" /> Pengaturan
             </button>
             <div className="h-px bg-slate-100 dark:bg-slate-800 my-2"></div>
-            <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all w-full text-left">
+            {/* GANTI ONCLICK MENJADI CUSTOM PROMPT */}
+            <button onClick={promptLogout} className="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all w-full text-left">
               <LogOut className="w-5 h-5" /> Keluar
             </button>
           </div>
@@ -284,10 +301,10 @@ export default function ProfilePage() {
                               </p>
                             </div>
                             <div className="flex items-center gap-3 w-full sm:w-auto">
+                              {/* GANTI ONCLICK MENJADI CUSTOM PROMPT */}
                               <button 
-                                onClick={() => handleCancelOrder(order.id, order.invoice_number)}
-                                disabled={isProcessingAction}
-                                className="flex-1 sm:flex-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-5 py-2.5 rounded-full font-bold text-sm hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all disabled:opacity-50"
+                                onClick={() => promptCancelOrder(order.id, order.invoice_number)}
+                                className="flex-1 sm:flex-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-5 py-2.5 rounded-full font-bold text-sm hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all"
                               >
                                 Batalkan
                               </button>
@@ -296,8 +313,7 @@ export default function ProfilePage() {
                                   if(order.payment_url) window.location.href = order.payment_url;
                                   else addToast('Link pembayaran tidak ditemukan. Silakan hubungi CS Warhope.', 'error');
                                 }}
-                                disabled={isProcessingAction}
-                                className="flex-1 sm:flex-none bg-blue-600 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                                className="flex-1 sm:flex-none bg-blue-600 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2"
                               >
                                 <CreditCard className="w-4 h-4" /> Bayar
                               </button>
@@ -305,7 +321,7 @@ export default function ProfilePage() {
                           </div>
                         )}
                         
-                        {/* FITUR BARU: INFO RESI UNTUK PESANAN DIKIRIM */}
+                        {/* INFO RESI UNTUK PESANAN DIKIRIM */}
                         {isDikirim && (
                           <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             {order.tracking_number ? (
@@ -392,6 +408,40 @@ export default function ProfilePage() {
 
         </div>
       </div>
+
+      {/* ========================================================
+          MODAL CUSTOM UNTUK KONFIRMASI LOGOUT & BATAL PESANAN
+      ======================================================== */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-130 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${confirmModal.type === 'logout' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
+                {confirmModal.type === 'logout' ? <LogOut className="w-8 h-8" /> : <AlertCircle className="w-8 h-8" />}
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-2">{confirmModal.title}</h3>
+              <p className="text-foreground/60 text-sm mb-8 whitespace-pre-line leading-relaxed">{confirmModal.message}</p>
+              
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => setConfirmModal({ isOpen: false, type: null, payload: null, title: '', message: '' })} 
+                  className="flex-1 py-3 rounded-full font-bold bg-slate-100 dark:bg-slate-800 text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={executeConfirmAction} 
+                  disabled={isProcessingAction}
+                  className={`flex-1 py-3 rounded-full font-bold text-white transition-colors disabled:opacity-70 shadow-lg ${confirmModal.type === 'logout' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20' : 'bg-red-600 hover:bg-red-700 shadow-red-600/20'}`}
+                >
+                  {isProcessingAction ? 'Memproses...' : 'Ya, Lanjutkan'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }

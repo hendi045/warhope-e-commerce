@@ -8,9 +8,63 @@ import ToastProvider from "../components/ToastProvider"; // IMPORT TOAST PROVIDE
 // Menggunakan Inter sesuai konsep PDF
 const inter = Inter({ subsets: ["latin"] });
 
+// ============================================================================
+// KONFIGURASI SEO & METADATA (OPEN GRAPH) TINGKAT LANJUT
+// ============================================================================
 export const metadata: Metadata = {
-  title: "Warhope | E-Commerce",
-  description: "Modern Casual Apparel & Streetwear",
+  metadataBase: new URL('https://warhope-e-commerce.vercel.app'), // Ganti dengan domain asli Anda jika sudah ada
+  title: {
+    default: "Warhope Apparel | Premium Heavyweight Streetwear",
+    template: "%s | Warhope Apparel", // Otomatis menambahkan nama toko di belakang judul halaman lain
+  },
+  description:
+    "Eksplorasi gaya urban sejati dengan Warhope Apparel. Temukan koleksi heavyweight streetwear premium: Boxy T-Shirt, Hoodie, dan Celana dengan kualitas material terbaik di Indonesia.",
+  keywords: [
+    "Warhope", "Warhope Apparel", "Streetwear Indonesia", "Heavyweight T-Shirt", 
+    "Boxy Fit", "Hoodie Premium", "Fashion Pria", "Baju Oversize"
+  ],
+  authors: [{ name: "Warhope Team" }],
+  creator: "Warhope Apparel",
+  publisher: "Warhope Apparel",
+  
+  // Konfigurasi Open Graph (Untuk WhatsApp, Facebook, Instagram, LinkedIn)
+  openGraph: {
+    type: "website",
+    locale: "id_ID",
+    url: "https://warhope-e-commerce.vercel.app", // Ganti dengan domain asli Anda
+    siteName: "Warhope Apparel",
+    title: "Warhope Apparel | Premium Heavyweight Streetwear",
+    description: "Koleksi streetwear premium dengan kualitas material terbaik. Tampil beda dengan gaya urban sejati bersama Warhope.",
+    images: [
+      {
+        url: "/assets/warhope-og-banner.png", // Gambar banner yang akan muncul saat link dibagikan
+        width: 1200,
+        height: 630,
+        alt: "Warhope Apparel Official Banner",
+      },
+    ],
+  },
+  
+  // Konfigurasi Twitter / X
+  twitter: {
+    card: "summary_large_image",
+    title: "Warhope Apparel | Premium Streetwear",
+    description: "Koleksi streetwear premium dengan kualitas material terbaik. Wujudkan gaya urban Anda!",
+    images: ["/assets/warhope-og-banner.png"],
+  },
+  
+  // Konfigurasi Robot Crawler Google
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({
