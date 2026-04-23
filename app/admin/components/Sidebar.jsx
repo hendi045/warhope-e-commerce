@@ -17,7 +17,7 @@ export default function Sidebar({ activeTab, setActiveTab, handleLogout, pending
       <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between md:justify-start">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/warhope-clear.PNG" alt="Warhope Logo" className="h-6 md:h-8 w-auto object-contain dark:invert transition-all hover:scale-105" />
+          <img src="/assets/warhope-clear.PNG" alt="Warhope Logo" className="h-4 md:h-6 w-auto object-contain dark:invert transition-all hover:scale-105" />
           <span className="text-[10px] font-black px-2 py-1 bg-blue-100 text-blue-600 rounded-md hidden lg:inline-block tracking-widest">ADMIN</span>
         </div>
       </div>

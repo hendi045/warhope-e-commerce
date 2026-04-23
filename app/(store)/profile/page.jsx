@@ -6,11 +6,14 @@ import Link from 'next/link';
 import { 
   User, Package, Settings, LogOut, 
   Clock, CheckCircle, Truck, XCircle, 
-  MapPin, Mail, Phone, ShoppingBag, AlertTriangle, CreditCard 
+  MapPin, Mail, Phone, ShoppingBag, AlertTriangle, CreditCard, Copy
 } from 'lucide-react';
 
+// IMPORT SELURUH STORE YANG DIBUTUHKAN
 import { useAuthStore } from '../../../store/authStore';
 import { useToastStore } from '../../../store/toastStore';
+import { useCartStore } from '../../../store/cartStore';
+import { useWishlistStore } from '../../../store/wishlistStore';
 import { supabase } from '../../../lib/supabase';
 
 // WAKTU KEDALUWARSA PEMBAYARAN (24 Jam dalam milidetik)
@@ -18,8 +21,12 @@ const PAYMENT_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
 export default function ProfilePage() {
   const router = useRouter();
+  
+  // DEKLARASI STATE & FUNGSI DARI STORE ZUSTAND
   const { user, isInitialized, checkAuth, logout } = useAuthStore();
   const addToast = useToastStore((state) => state.addToast);
+  const clearCart = useCartStore((state) => state.clearCart); 
+  const clearWishlist = useWishlistStore((state) => state.clearWishlist);
 
   const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState('orders');
@@ -27,7 +34,6 @@ export default function ProfilePage() {
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 
-  // Mencegah Hydration Mismatch & Cek Auth
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsClient(true);
@@ -36,7 +42,6 @@ export default function ProfilePage() {
     return () => clearTimeout(timer);
   }, [checkAuth]);
 
-  // PROTEKSI HALAMAN
   useEffect(() => {
     if (isClient && isInitialized && !user) {
       addToast('Silakan masuk (login) untuk mengakses profil Anda.', 'error');
@@ -44,7 +49,6 @@ export default function ProfilePage() {
     }
   }, [isClient, isInitialized, user, router, addToast]);
 
-  // MENGAMBIL DATA PESANAN & AUTO-EXPIRE LOGIC
   useEffect(() => {
     const fetchMyOrders = async () => {
       if (!user?.email) return;
@@ -61,13 +65,11 @@ export default function ProfilePage() {
         let fetchedOrders = data || [];
         let hasExpiredUpdates = false;
 
-        // LOGIKA CERDAS: Cek pesanan PENDING yang sudah lewat 24 jam
         const now = new Date().getTime();
         fetchedOrders = await Promise.all(fetchedOrders.map(async (order) => {
           if (order.status === 'PENDING') {
             const orderTime = new Date(order.created_at).getTime();
             if (now - orderTime > PAYMENT_TIMEOUT_MS) {
-              // Jika sudah lewat 24 Jam, update database menjadi EXPIRED
               await supabase.from('orders').update({ status: 'EXPIRED' }).eq('id', order.id);
               hasExpiredUpdates = true;
               return { ...order, status: 'EXPIRED' };
@@ -77,7 +79,7 @@ export default function ProfilePage() {
         }));
 
         if (hasExpiredUpdates) {
-          addToast('Beberapa pesanan telah dibatalkan otomatis oleh sistem karena melewati batas waktu pembayaran.', 'info');
+          addToast('Beberapa pesanan telah dibatalkan otomatis karena melewati batas waktu pembayaran.', 'info');
         }
 
         setOrders(fetchedOrders);
@@ -93,50 +95,41 @@ export default function ProfilePage() {
     }
   }, [isClient, user, addToast]);
 
+  // FUNGSI LOGOUT YANG SUDAH DIPERBAIKI (AMANG BUG-FREE)
   const handleLogout = () => {
     const isConfirmed = window.confirm("Apakah Anda yakin ingin keluar?");
     if (isConfirmed) {
-      // 1. Proses Logout dari Supabase/AuthStore
       logout();
-      
-      // 2. KEAMANAN SESI: Kosongkan keranjang & wishlist lokal
-      useCartStore.getState().clearCart();
-      useWishlistStore.getState().clearWishlist();
+      // KEAMANAN SESI: Kosongkan keranjang & wishlist menggunakan fungsi yang di-destructure
+      if (clearCart) clearCart();
+      if (clearWishlist) clearWishlist();
       
       addToast('Anda berhasil keluar.', 'info');
       router.push('/');
     }
   };
 
-  // FUNGSI BATALKAN PESANAN MANUAL OLEH USER
   const handleCancelOrder = async (orderId, invoiceNumber) => {
     const isConfirmed = window.confirm(`Yakin ingin membatalkan pesanan ${invoiceNumber}?\nTindakan ini tidak dapat dikembalikan.`);
     if (!isConfirmed) return;
 
     setIsProcessingAction(true);
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: 'CANCELED' })
-        .eq('id', orderId);
-
+      const { error } = await supabase.from('orders').update({ status: 'CANCELED' }).eq('id', orderId);
       if (error) throw error;
 
       setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'CANCELED' } : o));
       addToast(`Pesanan ${invoiceNumber} berhasil dibatalkan.`, 'success');
     } catch (err) {
       console.error(err);
-      addToast('Gagal membatalkan pesanan. Coba lagi nanti.', 'error');
+      addToast('Gagal membatalkan pesanan.', 'error');
     } finally {
       setIsProcessingAction(false);
     }
   };
 
   const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
-  
   const formatDate = (dateString) => new Date(dateString).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-
-  // Format Waktu Jatuh Tempo (Kapan harus dibayar)
   const getDueDate = (createdAt) => {
     const date = new Date(new Date(createdAt).getTime() + PAYMENT_TIMEOUT_MS);
     return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -159,7 +152,12 @@ export default function ProfilePage() {
     }
   };
 
-  if (!isClient || !isInitialized || !user) return <div className="min-h-screen bg-background pt-32 pb-24"></div>;
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    addToast('Nomor Resi disalin!', 'info');
+  };
+
+  if (!isClient || !isInitialized || !user) return <div className="min-h-screen bg-background pt-8 pb-24"></div>;
   if (user.role === 'admin') { router.push('/admin'); return null; }
 
   return (
@@ -228,13 +226,14 @@ export default function ProfilePage() {
                     try { 
                       items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items; 
                     } catch (err) {
-                      console.error("Gagal mem-parsing data item pesanan:", err);
+                      console.error("Parse items error:", err);
                     }
 
                     const isPending = order.status === 'PENDING';
+                    const isDikirim = order.status === 'DIKIRIM';
                     
                     return (
-                      <div key={order.id} className={`bg-white dark:bg-slate-900 border rounded-3xl p-6 shadow-sm transition-all ${isPending ? 'border-amber-200 dark:border-amber-900/50 shadow-amber-900/5' : 'border-slate-200 dark:border-slate-800'}`}>
+                      <div key={order.id} className={`bg-white dark:bg-slate-900 border rounded-3xl p-6 shadow-sm transition-all ${isPending ? 'border-amber-200 dark:border-amber-900/50 shadow-amber-900/5' : isDikirim ? 'border-blue-200 dark:border-blue-900/50' : 'border-slate-200 dark:border-slate-800'}`}>
                         
                         {/* Header Pesanan */}
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-100 dark:border-slate-800 pb-4 mb-4 gap-4">
@@ -256,14 +255,13 @@ export default function ProfilePage() {
                         {/* List Barang */}
                         <div className="space-y-4">
                           {items.map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-4 bg-slate-50/50 dark:bg-slate-800/20 p-3 rounded-2xl">
+                            <div key={idx} className="flex items-center gap-4 bg-slate-50/50 dark:bg-slate-800/20 p-3 rounded-2xl border border-transparent dark:border-slate-800/50">
                               <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                               </div>
                               <div className="flex-1">
                                 <h4 className="font-bold text-foreground text-sm line-clamp-1">{item.name}</h4>
-                                {/* PENGHAPUSAN TEKS WARNA DI SINI */}
                                 <p className="text-[11px] text-foreground/60 mt-1 uppercase tracking-widest font-bold">Size: {item.selectedSize}</p>
                               </div>
                               <div className="text-right shrink-0">
@@ -307,10 +305,29 @@ export default function ProfilePage() {
                           </div>
                         )}
                         
-                        {/* Aksi untuk DIKIRIM */}
-                        {order.status === 'DIKIRIM' && (
-                          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                            <button className="bg-green-600 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-green-700 transition-all shadow-md flex items-center gap-2">
+                        {/* FITUR BARU: INFO RESI UNTUK PESANAN DIKIRIM */}
+                        {isDikirim && (
+                          <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            {order.tracking_number ? (
+                              <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 p-3 rounded-2xl flex items-center gap-4 w-full sm:w-auto">
+                                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                                  <Truck className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold text-blue-800 dark:text-blue-500 uppercase tracking-widest mb-0.5">Nomor Resi</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-black text-blue-700 dark:text-blue-300 text-lg tracking-wider">{order.tracking_number}</p>
+                                    <button onClick={() => copyToClipboard(order.tracking_number)} className="text-blue-500 hover:text-blue-700 transition-colors" title="Salin Resi">
+                                      <Copy className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-foreground/60 italic flex items-center gap-2"><Truck className="w-4 h-4" /> Menunggu update resi dari kurir...</p>
+                            )}
+                            
+                            <button className="w-full sm:w-auto bg-green-600 text-white px-6 py-3 rounded-full font-bold text-sm hover:bg-green-700 transition-all shadow-md shadow-green-600/20 flex items-center justify-center gap-2 active:scale-95 mt-2 sm:mt-0">
                               <CheckCircle className="w-4 h-4" /> Pesanan Diterima
                             </button>
                           </div>
