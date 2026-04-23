@@ -54,7 +54,6 @@ export default function Home() {
   // LOGIKA CERDAS: Filter Kategori KEMUDIAN Sorting Harga
   const getProcessedProducts = () => {
     // 1. Filter Kategori
-    // PERBAIKAN: Menggunakan const alih-alih let sesuai saran linter
     const result = activeCategory === 'Semua' 
       ? [...products] 
       : products.filter(p => p.category === activeCategory);
@@ -213,16 +212,16 @@ export default function Home() {
             </div>
           </aside>
 
-          {/* GRID PRODUK */}
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+          {/* GRID PRODUK (PERBAIKAN: Menjadi 2 Kolom di Mobile) */}
+          <div className="flex-1 grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
             
             {isLoading ? (
-              // SKELETON LOADING
+              // SKELETON LOADING (Disesuaikan proporsinya untuk mobile 2 kolom)
               Array.from({ length: 6 }).map((_, idx) => (
-                <div key={idx} className="flex flex-col gap-4 animate-pulse">
-                  <div className="w-full aspect-4/5 bg-slate-200 dark:bg-slate-800 rounded-3xl"></div>
-                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-3/4"></div>
-                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
+                <div key={idx} className="flex flex-col gap-2 sm:gap-4 animate-pulse">
+                  <div className="w-full aspect-4/5 bg-slate-200 dark:bg-slate-800 rounded-2xl sm:rounded-3xl"></div>
+                  <div className="h-3 sm:h-4 bg-slate-200 dark:bg-slate-800 rounded w-3/4"></div>
+                  <div className="h-3 sm:h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
                 </div>
               ))
             ) : processedProducts.length === 0 ? (
@@ -233,34 +232,42 @@ export default function Home() {
             ) : (
               // LOOPING DATA PRODUK
               processedProducts.map((product: Product) => (
-                <div key={product.id} className="bg-white dark:bg-slate-800/50 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 hover:shadow-xl hover:border-slate-200 dark:hover:border-slate-700 transition-all duration-300 overflow-hidden group flex flex-col">
-                  <Link href={`/product/${product.id}`} className="block aspect-4/5 bg-slate-100 dark:bg-slate-900 relative overflow-hidden p-2">
-                    <div className="w-full h-full rounded-2xl overflow-hidden relative">
+                <div key={product.id} className="bg-white dark:bg-slate-800/50 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 hover:shadow-xl hover:border-slate-200 dark:hover:border-slate-700 transition-all duration-300 overflow-hidden group flex flex-col">
+                  
+                  {/* Container Gambar */}
+                  <Link href={`/product/${product.id}`} className="block aspect-4/5 bg-slate-100 dark:bg-slate-900 relative overflow-hidden p-1.5 sm:p-2">
+                    <div className="w-full h-full rounded-xl sm:rounded-2xl overflow-hidden relative">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={product.name} src={product.image} />
                       <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors"></div>
                     </div>
                   </Link>
 
-                  <div className="p-6 flex flex-col flex-1">
-                    <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-2">{product.category}</p>
+                  {/* Info Produk */}
+                  <div className="p-3 sm:p-6 flex flex-col flex-1">
+                    <p className="text-[9px] sm:text-[10px] font-bold text-foreground/40 uppercase tracking-widest mb-1 sm:mb-2 truncate">{product.category}</p>
+                    
                     <Link href={`/product/${product.id}`}>
-                      <h3 className="text-lg font-bold text-foreground mb-1 leading-tight hover:text-blue-600 transition-colors line-clamp-1">{product.name}</h3>
+                      {/* Teks nama produk di-clamp 2 baris agar tetap proporsional di HP */}
+                      <h3 className="text-xs sm:text-lg font-bold text-foreground mb-1 leading-tight hover:text-blue-600 transition-colors line-clamp-2">{product.name}</h3>
                     </Link>
                     
-                    <div className="flex items-center gap-1 text-xs font-bold text-yellow-500 mb-2">
-                      <Star className="w-3.5 h-3.5 fill-current" /> 4.9
+                    <div className="flex items-center gap-1 text-[10px] sm:text-xs font-bold text-yellow-500 mb-2">
+                      <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" /> 4.9
                     </div>
 
-                    <p className="text-sm text-foreground/60 mb-6 line-clamp-2">{product.description}</p>
+                    {/* Deskripsi disembunyikan di HP untuk menghemat ruang vertikal */}
+                    <p className="hidden sm:block text-sm text-foreground/60 mb-6 line-clamp-2">{product.description}</p>
                     
-                    <div className="mt-auto pt-5 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                      <span className="font-black text-foreground text-lg">{formatRupiah(product.price)}</span>
+                    <div className="mt-auto pt-3 sm:pt-5 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-1">
+                      <span className="font-black text-foreground text-xs sm:text-lg line-clamp-1">{formatRupiah(product.price)}</span>
                       
-                      {/* TOMBOL ADD TO CART DARI KOMPONEN */}
-                      <AddToCartButton product={product} />
-
+                      {/* TOMBOL ADD TO CART (Di-scale sedikit untuk layar kecil agar tidak menabrak harga) */}
+                      <div className="scale-90 sm:scale-100 origin-right shrink-0">
+                        <AddToCartButton product={product} />
+                      </div>
                     </div>
+
                   </div>
                 </div>
               ))
