@@ -12,7 +12,7 @@ const inter = Inter({ subsets: ["latin"] });
 // KONFIGURASI SEO & METADATA (OPEN GRAPH) TINGKAT LANJUT
 // ============================================================================
 export const metadata: Metadata = {
-  metadataBase: new URL('https://warhope-e-commerce.vercel.app'), // Ganti dengan domain asli Anda jika sudah ada
+  metadataBase: new URL('https://warhope-ecom.vercel.app'), // Ganti dengan domain asli Anda jika sudah ada
   title: {
     default: "Warhope Apparel | Premium Heavyweight Streetwear",
     template: "%s | Warhope Apparel", // Otomatis menambahkan nama toko di belakang judul halaman lain
@@ -31,13 +31,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "id_ID",
-    url: "https://warhope-e-commerce.vercel.app", // Ganti dengan domain asli Anda
+    url: "https://warhope-ecom.vercel.app", // Ganti dengan domain asli Anda
     siteName: "Warhope Apparel",
     title: "Warhope Apparel | Premium Heavyweight Streetwear",
     description: "Koleksi streetwear premium dengan kualitas material terbaik. Tampil beda dengan gaya urban sejati bersama Warhope.",
     images: [
       {
-        url: "/assets/warhope-og-banner.png", // Diperbarui menjadi .png
+        // PERBAIKAN: Menggunakan URL Absolut yang BENAR agar WhatsApp tidak kebingungan
+        url: "https://warhope-ecom.vercel.app/assets/warhope-og-banner.png", 
         width: 1200,
         height: 630,
         alt: "Warhope Apparel Official Banner",
@@ -50,7 +51,8 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Warhope Apparel | Premium Streetwear",
     description: "Koleksi streetwear premium dengan kualitas material terbaik. Wujudkan gaya urban Anda!",
-    images: ["/assets/warhope-og-banner.png"], // Diperbarui menjadi .png
+    // PERBAIKAN: Menggunakan URL Absolut yang BENAR
+    images: ["https://warhope-ecom.vercel.app/assets/warhope-og-banner.png"], 
   },
   
   // Konfigurasi Robot Crawler Google
