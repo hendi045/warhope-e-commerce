@@ -3,7 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Minus, Plus, ShoppingBag, ShieldCheck, Star, MessageSquare, Send } from 'lucide-react';
+import { 
+  ArrowLeft, Minus, Plus, ShoppingBag, ShieldCheck, 
+  Star, MessageSquare, Send, MessageCircle, PaintBucket 
+} from 'lucide-react';
 
 import { useCartStore } from '../../../../store/cartStore';
 import { useAuthStore } from '../../../../store/authStore';
@@ -143,6 +146,10 @@ export default function ProductDetail() {
     ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1) 
     : "0.0";
 
+  // Siapkan teks pesan otomatis untuk WhatsApp
+  const waMessage = encodeURIComponent(`Halo Admin Warhope, saya tertarik dengan produk *${product.name}* (ID: ${product.id}).\n\nSaya ingin bertanya soal modifikasi / custom desain untuk produk ini. Bisa dibantu?`);
+  const waLink = `https://wa.me/6281288111154?text=${waMessage}`;
+
   return (
     <main className="min-h-screen bg-background pt-8 pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -171,8 +178,8 @@ export default function ProductDetail() {
             </div>
 
             {/* Area Tabs (Deskripsi, Spesifikasi, Ulasan) */}
-            <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-4xl p-6 md:p-8 shadow-sm">
-              <div className="flex overflow-x-auto hide-scrollbar gap-6 border-b border-slate-200 dark:border-slate-700 mb-6 pb-2">
+            <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-4xl p-6 md:p-8 shadow-sm flex flex-col">
+              <div className="flex overflow-x-auto hide-scrollbar gap-6 border-b border-slate-200 dark:border-slate-700 mb-6 pb-2 shrink-0">
                 <button onClick={() => setActiveTab('deskripsi')} className={`pb-2 whitespace-nowrap text-sm font-bold transition-colors relative ${activeTab === 'deskripsi' ? 'text-blue-600 dark:text-blue-400' : 'text-foreground/50 hover:text-foreground'}`}>
                   Deskripsi
                   {activeTab === 'deskripsi' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 dark:bg-blue-400 rounded-t-full -mb-2.5"></span>}
@@ -187,24 +194,54 @@ export default function ProductDetail() {
                 </button>
               </div>
 
-              <div className="text-foreground/70 text-sm leading-relaxed">
+              <div className="text-foreground/70 text-sm leading-relaxed flex-1 flex flex-col">
                 {activeTab === 'deskripsi' && (
-                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 flex-1 flex flex-col">
                     <p>{product.description}</p>
-                    <p className="mt-4">Setiap produk Warhope dirancang dengan mengutamakan keseimbangan antara fungsionalitas dan estetika jalanan modern. Diproduksi dengan standar etis yang tinggi untuk menemani setiap langkah Anda.</p>
+                    <p className="mt-4 mb-8">Setiap produk Warhope dirancang dengan mengutamakan keseimbangan antara fungsionalitas dan estetika jalanan modern. Diproduksi dengan standar etis yang tinggi untuk menemani setiap langkah Anda.</p>
+                    
+                    {/* ========================================================================= */}
+                    {/* CTA CUSTOM DESAIN WHATSAPP */}
+                    {/* ========================================================================= */}
+                    <div className="bg-linear-to-br from-[#E8F9F0] to-[#F2FBF6] dark:from-[#112A1F] dark:to-[#0A1A13] border border-[#BDE7D0] dark:border-[#1E4D39] rounded-3xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5 shadow-sm relative overflow-hidden group mt-auto shrink-0">
+                      {/* Ornamen Latar */}
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-[#25D366]/10 rounded-full blur-3xl -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-700 pointer-events-none"></div>
+                      
+                      <div className="w-14 h-14 bg-white dark:bg-[#1A3F2E] text-[#25D366] rounded-2xl flex items-center justify-center shrink-0 shadow-sm z-10">
+                        <PaintBucket className="w-7 h-7" />
+                      </div>
+                      
+                      <div className="flex-1 z-10">
+                        <h4 className="text-base sm:text-lg font-black text-[#136B34] dark:text-[#4ADE80] tracking-tight">
+                          Punya Desain Sendiri?
+                        </h4>
+                        <p className="text-xs sm:text-sm text-[#225534]/80 dark:text-[#A7F3D0]/70 mt-1 leading-relaxed font-medium">
+                          Modifikasi apparel ini dengan sablon logo komunitas, ubah warna kain, atau *request* ukuran jumbo khusus.
+                        </p>
+                      </div>
+                      
+                      <a
+                        href={waLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 w-full sm:w-auto bg-[#25D366] hover:bg-[#20bd5a] text-white px-6 py-3.5 rounded-full font-bold text-sm transition-all shadow-lg shadow-[#25D366]/30 flex items-center justify-center gap-2 active:scale-95 z-10"
+                      >
+                        <MessageCircle className="w-5 h-5" /> Hubungi Admin
+                      </a>
+                    </div>
                   </div>
                 )}
                 {activeTab === 'spesifikasi' && (
-                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-3">
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-3 flex-1">
                     <div className="flex border-b border-slate-100 dark:border-slate-800 pb-2"><span className="w-32 font-bold text-foreground">Material</span><span>100% Premium Cotton</span></div>
                     <div className="flex border-b border-slate-100 dark:border-slate-800 pb-2"><span className="w-32 font-bold text-foreground">Fitting</span><span>Oversized / Relaxed Fit</span></div>
                     <div className="flex border-b border-slate-100 dark:border-slate-800 pb-2"><span className="w-32 font-bold text-foreground">Perawatan</span><span>Cuci mesin dingin, jangan gunakan pemutih</span></div>
                   </div>
                 )}
                 {activeTab === 'ulasan' && (
-                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 flex-1 flex flex-col">
                     {/* Form Tambah Ulasan */}
-                    <form onSubmit={handleSubmitReview} className="mb-8 bg-slate-50 dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <form onSubmit={handleSubmitReview} className="mb-8 bg-slate-50 dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shrink-0">
                       <h4 className="font-bold text-foreground mb-3 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Berikan Ulasan Anda</h4>
                       <div className="flex items-center gap-2 mb-4">
                         <span className="text-xs font-bold text-foreground/60 uppercase tracking-widest mr-2">Rating:</span>
@@ -228,7 +265,7 @@ export default function ProductDetail() {
                     </form>
 
                     {/* Daftar Ulasan */}
-                    <div className="space-y-4">
+                    <div className="space-y-4 flex-1">
                       {isLoadingReviews ? (
                         <div className="text-center py-6 text-slate-500 text-sm">Memuat ulasan...</div>
                       ) : reviews.length === 0 ? (

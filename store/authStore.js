@@ -21,13 +21,21 @@ export const useAuthStore = create(
         });
       },
 
-      // Fungsi Logout
+      // Fungsi Logout (SANGAT KRUSIAL UNTUK KEAMANAN & PEMBERSIHAN DATA)
       logout: () => {
+        // 1. Bersihkan Data User dari State
         set({ 
           user: null, 
           lastActive: null, 
           isInitialized: true 
         });
+
+        // 2. Cegah Kebocoran Data (Data Bleeding) antar akun.
+        // Hapus paksa memori Keranjang dan Wishlist di Local Storage browser.
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem('warhope_cart');
+          window.localStorage.removeItem('warhope_wishlist');
+        }
       },
 
       // Fungsi Cek Sesi (Akan memperpanjang sesi jika masih aktif)
@@ -45,7 +53,7 @@ export const useAuthStore = create(
         // Jika waktu saat ini dikurangi waktu aktif terakhir MELEBIHI batas timeout
         if (now - lastActive > timeoutLimit) {
           // SESI HABIS: Logout otomatis
-          set({ user: null, lastActive: null, isInitialized: true });
+          get().logout(); // Panggil fungsi logout di atas agar memori juga bersih
           console.log("🔒 Sesi telah berakhir karena tidak ada aktivitas.");
           return false; 
         }
